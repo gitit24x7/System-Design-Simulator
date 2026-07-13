@@ -6,6 +6,7 @@ import LandingFeatures from "@/components/LandingFeatures";
 import LandingHowItWorks from "@/components/LandingHowItWorks";
 import LandingTestimonials from "@/components/LandingTestimonials";
 import LandingCta from "@/components/LandingCta";
+import LandingFooter from "@/components/LandingFooter";
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
 
@@ -18,9 +19,7 @@ export default function LandingPage() {
       <LandingHowItWorks />
       <LandingTestimonials />
       <LandingCta />
-      <footer className="px-6 py-6 text-center text-[11.5px] text-[#3a3a3a] sm:px-[60px]">
-        © 2026 SYSTEM_DESIGN_SIMULATOR
-      </footer>
+      <LandingFooter />
     </div>
   );
 }

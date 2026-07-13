@@ -3,9 +3,10 @@
 import Link from "next/link";
 
 const NAV_LINKS = [
-  { label: "FEATURES", href: "#features" },
-  { label: "HOW_IT_WORKS", href: "#how-it-works" },
-  { label: "REVIEWS", href: "#reviews" },
+  { label: "FEATURES", href: "/#features" },
+  { label: "HOW_IT_WORKS", href: "/#how-it-works" },
+  { label: "REVIEWS", href: "/#reviews" },
+  { label: "ABOUT", href: "/about" },
 ];
 
 export default function LandingNav() {

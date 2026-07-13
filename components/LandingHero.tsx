@@ -3,11 +3,11 @@
 import Link from "next/link";
 
 const NODE_POSITIONS = [
-  { x: 12, y: 46, label: "CLIENT" },
-  { x: 34, y: 20, label: "LB" },
-  { x: 34, y: 72, label: "CACHE" },
-  { x: 60, y: 46, label: "API" },
-  { x: 84, y: 46, label: "DB" },
+  { x: 12, y: 55, label: "CLIENT" },
+  { x: 34, y: 35, label: "LB" },
+  { x: 34, y: 80, label: "CACHE" },
+  { x: 60, y: 55, label: "API" },
+  { x: 84, y: 55, label: "DB" },
 ];
 
 const NODE_LINKS: [number, number][] = [
@@ -38,7 +38,7 @@ function CanvasMockup() {
       {NODE_POSITIONS.map((n) => (
         <div
           key={n.label}
-          className="absolute -translate-x-1/2 -translate-y-1/2 border-[1.5px] border-[#4285f4] bg-[#111] px-2 py-1.5 text-[9px] font-bold text-[#eaf2ff] sm:px-3 sm:py-2 sm:text-[11px]"
+          className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap border-[1.5px] border-[#4285f4] bg-[#111] px-1.5 py-1 text-[10px] font-bold text-[#eaf2ff] sm:px-3 sm:py-2 sm:text-[11px]"
           style={{ left: `${n.x}%`, top: `${n.y}%` }}
         >
           {n.label}

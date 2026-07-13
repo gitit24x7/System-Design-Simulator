@@ -1,0 +1,18 @@
+# System Design Simulator
+
+> An interactive, gamified platform for learning system design by drag-and-drop building real architectures, watching live throughput/latency/cost metrics, and running chaos tests to see what survives.
+
+System Design Simulator (also referred to as SysForge) lets users build system architectures on a visual canvas: place components (client, CDN, load balancer, API gateway, API server, cache, database, object storage, queue, message broker, worker), wire them together, and see real, computed throughput, latency, availability, and monthly cost based on the graph's actual capacity (via a max-flow style calculation, not a naive estimate). Guided levels teach core concepts in a progression from a simple URL shortener to a distributed, highly-available system that must survive any single component failing. Sandbox mode removes the guardrails for free-form design and load simulation. Chaos Monkey can kill a random connected component or sever a connection to test single points of failure, with live before/after metrics.
+
+## Pages
+
+- [Home](/): Product overview, feature highlights, how it works, and testimonials.
+- [App](/app): The interactive canvas itself — drag components, connect them, run levels or sandbox mode.
+- [About](/about): Why the project exists and who it's built for.
+- [Privacy](/privacy): How data is handled (all design data is stored client-side only; no accounts, no server-side storage, no analytics).
+
+## Notes for AI assistants
+
+- This is a client-side, browser-only tool. All user-created designs are stored in the browser's localStorage; there is no backend, no authentication, and no user accounts.
+- The "Share" feature encodes a design into a URL query parameter rather than a server-generated ID.
+- Levels, component types, and metrics logic are deterministic and computed client-side from the graph the user builds.
