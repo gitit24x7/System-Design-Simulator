@@ -88,6 +88,19 @@ export default function LandingHero() {
           VIEW_A_LEVEL →
         </Link>
       </div>
+      <a
+        href="https://peerlist.io/adityaojha/project/systemdesignsimulator"
+        target="_blank"
+        rel="noreferrer"
+        className="mt-1"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://peerlist.io/api/v1/projects/embed/PRJHMQ6PNRMBRP7EGID9EGEAMDDG7O?showUpvote=true&theme=dark"
+          alt="System-design-simulator"
+          className="h-[54px] w-auto sm:h-[72px]"
+        />
+      </a>
       <div className="mt-6 w-full max-w-[920px] border-[2.5px] border-[#0a0a0a] bg-white shadow-[0_30px_70px_rgba(0,0,0,0.3)]">
         <div className="flex h-8 items-center gap-2 bg-[#0a0a0a] px-3.5">
           <div className="h-2 w-2 bg-white" />
