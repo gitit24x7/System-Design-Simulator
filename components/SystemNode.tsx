@@ -12,6 +12,7 @@ import {
   Server,
   ShieldCheck,
   Shuffle,
+  TrendingDown,
   User,
   Zap,
   Cog,
@@ -42,8 +43,11 @@ const ICONS: Record<SystemComponent["type"], LucideIcon> = {
   worker: Cog,
 };
 
+// Touch devices can't trigger :hover, so handles get a low baseline opacity
+// and a larger hit target below the sm breakpoint; desktop keeps the
+// hover-to-reveal behavior so the canvas stays uncluttered.
 const HANDLE_CLASS =
-  "!h-2.5 !w-2.5 !border !border-zinc-400 !bg-zinc-700 opacity-0 transition-opacity group-hover:opacity-100";
+  "!h-3.5 !w-3.5 !border !border-zinc-400 !bg-zinc-700 opacity-40 transition-opacity sm:!h-2.5 sm:!w-2.5 sm:opacity-0 sm:group-hover:opacity-100";
 
 export default function SystemNode({ id, data }: NodeProps<SystemComponent>) {
   const Icon = ICONS[data.type];
@@ -52,6 +56,7 @@ export default function SystemNode({ id, data }: NodeProps<SystemComponent>) {
   const selectNode = useSysForgeStore((s) => s.selectNode);
   const provider = useSysForgeStore((s) => s.provider);
   const isSaturated = useSysForgeStore((s) => s.saturatedNodeIds.includes(id));
+  const isDegraded = data.degradation > 0;
 
   const displayLabel = data.customLabel || getDisplayLabel(data.type, data.variant, provider);
   const effectiveRps = Math.round(getEffectiveMaxRps(data));
@@ -73,7 +78,9 @@ export default function SystemNode({ id, data }: NodeProps<SystemComponent>) {
             ? "border-sky-500 bg-zinc-900"
             : isSaturated
               ? "border-amber-500 bg-zinc-900 animate-pulse"
-              : "border-zinc-700 bg-zinc-900"
+              : isDegraded
+                ? "border-purple-500 bg-zinc-900"
+                : "border-zinc-700 bg-zinc-900"
       }`}
     >
       {/* Floating connection points on every side, connectable in either
@@ -89,9 +96,18 @@ export default function SystemNode({ id, data }: NodeProps<SystemComponent>) {
         <Icon size={16} className={isDead ? "text-red-400" : "text-emerald-400"} />
         <span className="text-sm font-medium text-zinc-100">{displayLabel}</span>
         {isDead && <Flame size={14} className="ml-auto animate-pulse text-orange-500" />}
-        {!isDead && isSaturated && (
-          <span title="This is the current bottleneck" className="ml-auto">
-            <AlertTriangle size={14} className="text-amber-400" />
+        {!isDead && (isSaturated || isDegraded) && (
+          <span className="ml-auto flex items-center gap-1">
+            {isSaturated && (
+              <span title="This is the current bottleneck">
+                <AlertTriangle size={14} className="text-amber-400" />
+              </span>
+            )}
+            {isDegraded && (
+              <span title={`Simulated degradation: ${data.degradation}%`}>
+                <TrendingDown size={14} className="text-purple-400" />
+              </span>
+            )}
           </span>
         )}
       </div>

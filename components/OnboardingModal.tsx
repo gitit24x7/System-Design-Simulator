@@ -44,7 +44,7 @@ export default function OnboardingModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-[26rem] rounded-lg border border-zinc-700 bg-zinc-950 p-5 shadow-2xl">
+      <div className="max-h-[90vh] w-[26rem] max-w-[92vw] overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 p-5 shadow-2xl">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-zinc-100">Welcome to SysForge</h2>
           <button onClick={dismiss} className="text-zinc-500 hover:text-zinc-300">

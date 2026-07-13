@@ -87,6 +87,8 @@ interface SysForgeState {
   drawTool: DrawTool;
   drawColor: string;
   chaosEvent: ChaosEvent | null;
+  mobileSidebarOpen: boolean;
+  mobileGuidedPanelOpen: boolean;
   past: HistorySnapshot[];
   future: HistorySnapshot[];
 
@@ -105,6 +107,8 @@ interface SysForgeState {
   clearStrokes: () => void;
   setDrawTool: (tool: DrawTool) => void;
   setDrawColor: (color: string) => void;
+  setMobileSidebarOpen: (open: boolean) => void;
+  setMobileGuidedPanelOpen: (open: boolean) => void;
   killRandomNode: () => void;
   reviveAllNodes: () => void;
   resetGraph: () => void;
@@ -112,6 +116,7 @@ interface SysForgeState {
   updateNodeVariant: (nodeId: string, variantId: string) => void;
   updateNodeSecondaryVariant: (nodeId: string, optionId: string) => void;
   updateNodeConsistency: (nodeId: string, consistency: number) => void;
+  updateNodeDegradation: (nodeId: string, degradation: number) => void;
   removeEdge: (edgeId: string) => void;
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => void;
@@ -179,6 +184,8 @@ export const useSysForgeStore = create<SysForgeState>()(
         drawTool: "select",
         drawColor: ANNOTATION_COLORS[0],
         chaosEvent: null,
+        mobileSidebarOpen: false,
+        mobileGuidedPanelOpen: false,
         past: [],
         future: [],
 
@@ -298,6 +305,10 @@ export const useSysForgeStore = create<SysForgeState>()(
 
         setDrawColor: (color) => set({ drawColor: color }),
 
+        setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
+
+        setMobileGuidedPanelOpen: (open) => set({ mobileGuidedPanelOpen: open }),
+
         killRandomNode: () => {
           const { nodes, edges, provider } = get();
           const connectedIds = connectedNodeIds(edges);
@@ -388,6 +399,15 @@ export const useSysForgeStore = create<SysForgeState>()(
           set({
             nodes: get().nodes.map((n) =>
               n.id === nodeId ? { ...n, data: { ...n.data, consistency } } : n
+            ),
+          });
+        },
+
+        updateNodeDegradation: (nodeId, degradation) => {
+          snapshot();
+          set({
+            nodes: get().nodes.map((n) =>
+              n.id === nodeId ? { ...n, data: { ...n.data, degradation } } : n
             ),
           });
         },

@@ -11,6 +11,7 @@ import {
   Shuffle,
   StickyNote,
   User,
+  X,
   Zap,
   Cog,
   LucideIcon,
@@ -50,6 +51,8 @@ const PALETTE: ComponentType[] = [
 export default function Sidebar() {
   const addNode = useSysForgeStore((s) => s.addNode);
   const addNote = useSysForgeStore((s) => s.addNote);
+  const mobileSidebarOpen = useSysForgeStore((s) => s.mobileSidebarOpen);
+  const setMobileSidebarOpen = useSysForgeStore((s) => s.setMobileSidebarOpen);
   const { screenToFlowPosition } = useReactFlow();
 
   const onDragStart = (event: React.DragEvent, type: ComponentType) => {
@@ -72,41 +75,68 @@ export default function Sidebar() {
     return screenToFlowPosition({ x: cx + offsetX, y: cy + offsetY });
   };
 
-  const onClickAdd = (type: ComponentType) => addNode(type, cascadePosition());
-  const onClickAddNote = () => addNote(cascadePosition());
+  const onClickAdd = (type: ComponentType) => {
+    addNode(type, cascadePosition());
+    setMobileSidebarOpen(false);
+  };
+  const onClickAddNote = () => {
+    addNote(cascadePosition());
+    setMobileSidebarOpen(false);
+  };
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col gap-2 overflow-y-auto border-r border-zinc-800 bg-zinc-950 p-3">
-      <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-        Components
-      </h2>
-      <p className="mb-1 text-[11px] text-zinc-600">Click to place, or drag onto the canvas.</p>
-      {PALETTE.map((type) => {
-        const Icon = ICONS[type];
-        return (
-          <button
-            key={type}
-            type="button"
-            draggable
-            onDragStart={(e) => onDragStart(e, type)}
-            onClick={() => onClickAdd(type)}
-            className="flex cursor-grab items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-sm text-zinc-200 transition-colors hover:border-emerald-600 hover:bg-zinc-800 active:cursor-grabbing"
-          >
-            <Icon size={16} className="text-emerald-400" />
-            {TYPE_LABELS[type]}
-          </button>
-        );
-      })}
-
-      <div className="my-1 border-t border-zinc-800" />
-      <button
-        type="button"
-        onClick={onClickAddNote}
-        className="flex items-center gap-2 rounded-md border border-amber-800/50 bg-amber-950/30 px-3 py-2 text-left text-sm text-amber-200 transition-colors hover:border-amber-600 hover:bg-amber-950/60"
+    <>
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col gap-2 overflow-y-auto border-r border-zinc-800 bg-zinc-950 p-3 transition-transform duration-200 lg:static lg:z-auto lg:w-56 lg:translate-x-0 ${
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        <StickyNote size={16} className="text-amber-400" />
-        Sticky Note
-      </button>
-    </aside>
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Components
+          </h2>
+          <button
+            type="button"
+            onClick={() => setMobileSidebarOpen(false)}
+            className="text-zinc-500 hover:text-zinc-300 lg:hidden"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <p className="mb-1 text-[11px] text-zinc-600">Click to place, or drag onto the canvas.</p>
+        {PALETTE.map((type) => {
+          const Icon = ICONS[type];
+          return (
+            <button
+              key={type}
+              type="button"
+              draggable
+              onDragStart={(e) => onDragStart(e, type)}
+              onClick={() => onClickAdd(type)}
+              className="flex cursor-grab items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-sm text-zinc-200 transition-colors hover:border-emerald-600 hover:bg-zinc-800 active:cursor-grabbing"
+            >
+              <Icon size={16} className="text-emerald-400" />
+              {TYPE_LABELS[type]}
+            </button>
+          );
+        })}
+
+        <div className="my-1 border-t border-zinc-800" />
+        <button
+          type="button"
+          onClick={onClickAddNote}
+          className="flex items-center gap-2 rounded-md border border-amber-800/50 bg-amber-950/30 px-3 py-2 text-left text-sm text-amber-200 transition-colors hover:border-amber-600 hover:bg-amber-950/60"
+        >
+          <StickyNote size={16} className="text-amber-400" />
+          Sticky Note
+        </button>
+      </aside>
+    </>
   );
 }

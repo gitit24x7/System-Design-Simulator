@@ -26,17 +26,18 @@ export default function ChaosMonkey() {
   const canRevive = nodes.some((n) => n.data.health === "dead") || edges.some((e) => e.data?.severed);
 
   const btnClass =
-    "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40";
+    "flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 sm:px-3";
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5 sm:gap-2">
       {totalCount > 0 && (
         <span
           title="Healthy, connected components (client and unconnected components excluded)"
           className="flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-400"
         >
           <HeartPulse size={12} className={healthyCount === totalCount ? "text-emerald-400" : "text-amber-400"} />
-          {healthyCount}/{totalCount} healthy
+          {healthyCount}/{totalCount}
+          <span className="hidden sm:inline">&nbsp;healthy</span>
         </span>
       )}
       <button
@@ -46,7 +47,7 @@ export default function ChaosMonkey() {
         title={canKill ? "Chaos Monkey: kill a random connected node" : "No connected, healthy components left to kill"}
       >
         <Skull size={14} />
-        Chaos Monkey
+        <span className="hidden sm:inline">Chaos Monkey</span>
       </button>
       <button
         onClick={severRandomEdge}
@@ -55,7 +56,7 @@ export default function ChaosMonkey() {
         title={canSever ? "Sever a random connection (simulate a network partition)" : "No connections left to sever"}
       >
         <Unlink size={14} />
-        Sever Link
+        <span className="hidden sm:inline">Sever Link</span>
       </button>
       <button
         onClick={reviveAllNodes}
@@ -64,7 +65,7 @@ export default function ChaosMonkey() {
         title={canRevive ? "Revive all nodes and heal all connections" : "Everything is already healthy"}
       >
         <RotateCcw size={14} />
-        Revive All
+        <span className="hidden sm:inline">Revive All</span>
       </button>
     </div>
   );

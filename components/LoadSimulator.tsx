@@ -11,7 +11,7 @@ export default function LoadSimulator() {
   const active = simulatedLoad !== null;
 
   return (
-    <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-950 px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800 bg-zinc-950 px-3 py-2">
       <Zap size={14} className={active ? "text-amber-400" : "text-zinc-600"} />
       <span className="shrink-0 text-xs text-zinc-400">Load Simulator</span>
       <input
@@ -21,7 +21,7 @@ export default function LoadSimulator() {
         step={1000}
         value={simulatedLoad ?? 0}
         onChange={(e) => setSimulatedLoad(Number(e.target.value))}
-        className="w-48 accent-amber-500"
+        className="w-32 flex-1 accent-amber-500 sm:w-48 sm:flex-none"
       />
       <span className="w-24 shrink-0 text-xs text-zinc-300">
         {(simulatedLoad ?? 0).toLocaleString()} rps
@@ -34,7 +34,7 @@ export default function LoadSimulator() {
           Reset
         </button>
       )}
-      <p className="ml-2 text-[11px] text-zinc-600">
+      <p className="ml-2 hidden text-[11px] text-zinc-600 sm:block">
         Drag to see which components saturate under hypothetical load.
       </p>
     </div>

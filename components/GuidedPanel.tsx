@@ -3,6 +3,7 @@
 import { Check, X, Trophy, ListChecks, Gauge } from "lucide-react";
 import { Level, validateLevel } from "@/lib/campaign";
 import { GraphEdge, GraphNode, SystemMetrics } from "@/lib/engine";
+import { useSysForgeStore } from "@/lib/store";
 
 export default function GuidedPanel({
   level,
@@ -16,13 +17,35 @@ export default function GuidedPanel({
   metrics: SystemMetrics;
 }) {
   const { progress, allComplete } = validateLevel(level, nodes, edges, metrics);
+  const mobileGuidedPanelOpen = useSysForgeStore((s) => s.mobileGuidedPanelOpen);
+  const setMobileGuidedPanelOpen = useSysForgeStore((s) => s.setMobileGuidedPanelOpen);
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-l border-zinc-800 bg-zinc-950 p-4">
-      <div>
-        <h2 className="text-sm font-semibold text-zinc-100">{level.title}</h2>
-        <p className="mt-1 text-xs text-zinc-500">{level.scenario}</p>
-      </div>
+    <>
+      {mobileGuidedPanelOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+          onClick={() => setMobileGuidedPanelOpen(false)}
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 right-0 z-40 flex w-80 max-w-[85vw] shrink-0 flex-col gap-3 overflow-y-auto border-l border-zinc-800 bg-zinc-950 p-4 transition-transform duration-200 lg:static lg:z-auto lg:w-72 lg:max-w-none lg:translate-x-0 ${
+          mobileGuidedPanelOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-100">{level.title}</h2>
+            <p className="mt-1 text-xs text-zinc-500">{level.scenario}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileGuidedPanelOpen(false)}
+            className="shrink-0 text-zinc-500 hover:text-zinc-300 lg:hidden"
+          >
+            <X size={16} />
+          </button>
+        </div>
 
       <div className="rounded-md border border-zinc-800 bg-zinc-900/50 p-3">
         <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
@@ -71,6 +94,7 @@ export default function GuidedPanel({
           Level complete!
         </div>
       )}
-    </aside>
+      </aside>
+    </>
   );
 }

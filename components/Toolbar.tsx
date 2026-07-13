@@ -8,7 +8,9 @@ import {
   Check,
   Download,
   LayoutGrid,
+  ListChecks,
   Link as LinkIcon,
+  Menu,
   Pause,
   Play,
   Redo2,
@@ -79,6 +81,8 @@ export default function Toolbar() {
   const setProvider = useSysForgeStore((s) => s.setProvider);
   const appMode = useSysForgeStore((s) => s.appMode);
   const setAppMode = useSysForgeStore((s) => s.setAppMode);
+  const setMobileSidebarOpen = useSysForgeStore((s) => s.setMobileSidebarOpen);
+  const setMobileGuidedPanelOpen = useSysForgeStore((s) => s.setMobileGuidedPanelOpen);
 
   const nodeInternals = useStore((s) => s.nodeInternals);
   const { fitView } = useReactFlow();
@@ -139,10 +143,17 @@ export default function Toolbar() {
   }, []);
 
   const btnClass =
-    "flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-zinc-900";
+    "flex shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-zinc-900";
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800 bg-zinc-950 px-2 py-1.5">
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto border-b border-zinc-800 bg-zinc-950 px-2 py-1.5 lg:flex-wrap lg:overflow-x-visible">
+      <button
+        onClick={() => setMobileSidebarOpen(true)}
+        title="Open components panel"
+        className={`${btnClass} lg:hidden`}
+      >
+        <Menu size={14} />
+      </button>
       <button onClick={undo} disabled={past.length === 0} title="Undo (Ctrl+Z)" className={btnClass}>
         <Undo2 size={14} />
       </button>
@@ -171,7 +182,7 @@ export default function Toolbar() {
       </button>
       <ProjectsMenu />
 
-      <div className="ml-2 flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 p-0.5">
+      <div className="ml-2 flex shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 p-0.5">
         <button
           onClick={() => setAppMode("guided")}
           className={`rounded px-2 py-1 text-xs transition-colors ${
@@ -190,8 +201,17 @@ export default function Toolbar() {
         </button>
       </div>
       {appMode === "guided" && <LevelSelector />}
+      {appMode === "guided" && (
+        <button
+          onClick={() => setMobileGuidedPanelOpen(true)}
+          title="Open requirements panel"
+          className={`${btnClass} lg:hidden`}
+        >
+          <ListChecks size={14} />
+        </button>
+      )}
 
-      <div className="ml-auto flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 p-0.5">
+      <div className="ml-auto flex shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 p-0.5">
         {PROVIDERS.map((p) => (
           <button
             key={p}

@@ -37,6 +37,10 @@ export interface SystemComponent {
   secondaryVariant: string;
   /** CAP theorem dial, 0 = eventual consistency, 100 = strong. Only meaningful for databases. */
   consistency: number;
+  /** Simulated real-time degradation, 0 = normal, 100 = severely degraded. The
+   * node stays "healthy" (doesn't count as an outage) but runs slower and
+   * with less capacity -- for testing partial failure, not just alive/dead. */
+  degradation: number;
 }
 
 export type CloudProvider = "generic" | "aws" | "gcp" | "azure";
@@ -398,12 +402,34 @@ export function getSecondaryVariant(type: ComponentType, optionId: string): Seco
   return axis?.options.find((o) => o.id === optionId) ?? NEUTRAL_SECONDARY_OPTION;
 }
 
+// Simulated degradation: dial up to inject latency and shave capacity off a
+// node in real time, without marking it dead -- for testing "slow but not
+// down" scenarios that Chaos Monkey's binary kill can't express.
+const DEGRADATION_MAX_LATENCY_MULTIPLIER = 2; // up to +200% (3x) latency at degradation=100
+const DEGRADATION_MAX_RPS_REDUCTION = 0.8; // up to -80% capacity (down to 20%) at degradation=100
+
+function degradationLatencyMultiplier(data: SystemComponent): number {
+  return 1 + ((data.degradation ?? 0) / 100) * DEGRADATION_MAX_LATENCY_MULTIPLIER;
+}
+
+function degradationRpsMultiplier(data: SystemComponent): number {
+  return 1 - ((data.degradation ?? 0) / 100) * DEGRADATION_MAX_RPS_REDUCTION;
+}
+
 export function getEffectiveMaxRps(data: SystemComponent): number {
-  return data.maxRps * getSecondaryVariant(data.type, data.secondaryVariant).maxRpsMultiplier;
+  return (
+    data.maxRps *
+    getSecondaryVariant(data.type, data.secondaryVariant).maxRpsMultiplier *
+    degradationRpsMultiplier(data)
+  );
 }
 
 export function getEffectiveLatencyMs(data: SystemComponent): number {
-  return data.latencyMs * getSecondaryVariant(data.type, data.secondaryVariant).latencyMultiplier;
+  return (
+    data.latencyMs *
+    getSecondaryVariant(data.type, data.secondaryVariant).latencyMultiplier *
+    degradationLatencyMultiplier(data)
+  );
 }
 
 /** Base cost with the secondary-axis multiplier applied, before the cloud provider multiplier. */
@@ -504,6 +530,7 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Omit<SystemComponent, "he
           variant: variant.id,
           secondaryVariant: "generic",
           consistency: 50,
+          degradation: 0,
         },
       ];
     })

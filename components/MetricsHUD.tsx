@@ -41,7 +41,7 @@ export default function MetricsHUD({ metrics }: { metrics: SystemMetrics }) {
     `= ${metrics.availabilityPct.toFixed(2)}%`;
 
   return (
-    <div className="flex gap-2 border-b border-zinc-800 bg-zinc-950 p-2">
+    <div className="grid grid-cols-2 gap-2 border-b border-zinc-800 bg-zinc-950 p-2 sm:flex">
       <Gauge_ icon={Gauge} label="Throughput" value={`${metrics.rps.toLocaleString()} rps`} />
       <Gauge_ icon={Activity} label="Latency" value={`${metrics.latencyMs} ms`} />
       <Gauge_

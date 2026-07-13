@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, Trash2, X } from "lucide-react";
+import { Check, Copy, TrendingDown, Trash2, X } from "lucide-react";
 import { useSysForgeStore } from "@/lib/store";
 import {
   getCapTradeoffs,
@@ -49,6 +49,7 @@ export default function NodeInspector() {
   const updateNodeVariant = useSysForgeStore((s) => s.updateNodeVariant);
   const updateNodeSecondaryVariant = useSysForgeStore((s) => s.updateNodeSecondaryVariant);
   const updateNodeConsistency = useSysForgeStore((s) => s.updateNodeConsistency);
+  const updateNodeDegradation = useSysForgeStore((s) => s.updateNodeDegradation);
   const removeNode = useSysForgeStore((s) => s.removeNode);
   const duplicateNode = useSysForgeStore((s) => s.duplicateNode);
   const renameNode = useSysForgeStore((s) => s.renameNode);
@@ -69,11 +70,12 @@ export default function NodeInspector() {
   const capTradeoffs = getCapTradeoffs(node.data.consistency);
   const secondaryAxis = getSecondaryVariants(node.data.type);
   const activeSecondary = secondaryAxis ? getSecondaryVariant(node.data.type, node.data.secondaryVariant) : null;
+  const showDegradationSlider = node.data.type !== "client";
 
   const commitLabel = () => renameNode(node.id, labelDraft);
 
   return (
-    <div className="no-export absolute bottom-4 left-1/2 z-20 w-96 -translate-x-1/2 rounded-lg border border-zinc-700 bg-zinc-950/95 p-4 shadow-xl max-h-[70vh] overflow-y-auto">
+    <div className="no-export absolute inset-x-2 bottom-2 z-20 max-h-[75vh] overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950/95 p-4 shadow-xl sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:w-96 sm:max-h-[70vh] sm:-translate-x-1/2">
       <div className="mb-1 flex items-center justify-between gap-2">
         <input
           value={labelDraft}
@@ -178,6 +180,37 @@ export default function NodeInspector() {
           <div className="mt-2">
             <TradeoffList pros={capTradeoffs.pros} cons={capTradeoffs.cons} />
           </div>
+        </div>
+      )}
+
+      {showDegradationSlider && (
+        <div className="mb-3">
+          <div className="mb-1 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500">
+              <TrendingDown size={12} className={node.data.degradation > 0 ? "text-purple-400" : ""} />
+              Simulate Degradation
+            </div>
+            {node.data.degradation > 0 && (
+              <button
+                onClick={() => updateNodeDegradation(node.id, 0)}
+                className="text-[11px] text-zinc-500 hover:text-zinc-300"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={node.data.degradation}
+            onChange={(e) => updateNodeDegradation(node.id, Number(e.target.value))}
+            className="w-full accent-purple-500"
+          />
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Runs this component slow and over capacity without marking it dead -- tests partial
+            failure and latency SLAs, not just outages.
+          </p>
         </div>
       )}
 
