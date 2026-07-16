@@ -222,7 +222,7 @@ function CanvasInner() {
           >
             <Background color="#3f3f46" gap={16} />
             <Controls />
-            <MiniMap pannable zoomable className="!bg-zinc-950" />
+            <MiniMap pannable zoomable className="!bg-zinc-950" style={{ width: 100, height: 75 }} />
           </ReactFlow>
           <AnnotationLayer />
           <AnnotationToolbar />
