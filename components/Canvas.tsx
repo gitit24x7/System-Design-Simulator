@@ -16,7 +16,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { useSysForgeStore } from "@/lib/store";
 import { calculateSystemMetrics, ComponentType } from "@/lib/engine";
-import { getLevel } from "@/lib/campaign";
+import { DEFAULT_LEVEL_ID, getLevel } from "@/lib/campaign";
 import SystemNode from "./SystemNode";
 import NoteNode from "./NoteNode";
 import FloatingEdge from "./FloatingEdge";
@@ -31,6 +31,7 @@ import LoadSimulator from "./LoadSimulator";
 import OnboardingModal from "./OnboardingModal";
 import AnnotationLayer from "./AnnotationLayer";
 import AnnotationToolbar from "./AnnotationToolbar";
+import CritiquePanel from "./CritiquePanel";
 
 const nodeTypes = { systemNode: SystemNode, noteNode: NoteNode };
 const edgeTypes = { floating: FloatingEdge };
@@ -75,7 +76,7 @@ function CanvasInner() {
     () => calculateSystemMetrics(nodes, edges, provider, demandCapRps),
     [nodes, edges, provider, demandCapRps]
   );
-  const level = getLevel(currentLevelId) ?? getLevel("level-1-url-shortener")!;
+  const level = getLevel(currentLevelId) ?? getLevel(DEFAULT_LEVEL_ID)!;
 
   useEffect(() => {
     setLiveMetrics(metrics.bottleneckNodeId, metrics.saturatedNodeIds);
@@ -191,7 +192,7 @@ function CanvasInner() {
     <div className="flex h-full w-full">
       <OnboardingModal />
       <Sidebar />
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Toolbar />
         {appMode === "sandbox" && <LoadSimulator />}
         <MetricsHUD metrics={metrics} />
@@ -242,6 +243,7 @@ function CanvasInner() {
           </div>
           <ChaosToast />
           <NodeInspector />
+          <CritiquePanel nodes={nodes} edges={edges} metrics={metrics} />
         </div>
       </div>
       {appMode === "guided" && (

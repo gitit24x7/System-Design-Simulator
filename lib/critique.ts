@@ -1,0 +1,202 @@
+// Design Critique: a rule-based "coach" that scans the current canvas and
+// gives prioritized, structured feedback -- usable anytime, in Guided or
+// Sandbox mode, independent of any specific level's objectives.
+
+import {
+  ComponentType,
+  connectedNodeIds,
+  evaluateConnection,
+  GraphEdge,
+  GraphNode,
+  SystemMetrics,
+  TYPE_LABELS,
+} from "./engine";
+
+export type CritiqueSeverity = "critical" | "warning" | "tip";
+
+export interface CritiqueFinding {
+  id: string;
+  severity: CritiqueSeverity;
+  title: string;
+  message: string;
+}
+
+const SEVERITY_RANK: Record<CritiqueSeverity, number> = { critical: 0, warning: 1, tip: 2 };
+
+function nodesOfType(nodes: GraphNode[], type: ComponentType): GraphNode[] {
+  return nodes.filter((n) => n.data.type === type && n.data.health !== "dead");
+}
+
+function label(type: ComponentType): string {
+  return TYPE_LABELS[type];
+}
+
+export function analyzeCritique(nodes: GraphNode[], edges: GraphEdge[], metrics: SystemMetrics): CritiqueFinding[] {
+  const findings: CritiqueFinding[] = [];
+  const alive = nodes.filter((n) => n.data.health !== "dead");
+
+  if (alive.length === 0) {
+    return [
+      {
+        id: "empty",
+        severity: "tip",
+        title: "Nothing built yet",
+        message: "Start by adding a Client and something for it to talk to -- an API Server is usually the next step.",
+      },
+    ];
+  }
+
+  const connectedIds = connectedNodeIds(edges);
+  const isolated = alive.filter((n) => n.data.type !== "client" && !connectedIds.has(n.id));
+  if (isolated.length > 0) {
+    findings.push({
+      id: "isolated-nodes",
+      severity: "warning",
+      title: "Unconnected components on the canvas",
+      message: `${isolated.length === 1 ? "One component isn't" : `${isolated.length} components aren't`} wired into the design (${isolated
+        .map((n) => n.data.customLabel || label(n.data.type))
+        .join(", ")}). A disconnected node doesn't count toward your metrics -- connect it or remove it.`,
+    });
+  }
+
+  // Surface every anti-pattern / questionable connection the rules engine flags.
+  const nodeType = (id: string) => nodes.find((n) => n.id === id)?.data.type;
+  for (const edge of edges) {
+    if (edge.data?.severed) continue;
+    const from = nodeType(edge.source);
+    const to = nodeType(edge.target);
+    if (!from || !to) continue;
+    const evaluation = evaluateConnection(from, to);
+    if (evaluation.status === "error") {
+      findings.push({
+        id: `bad-connection-${edge.source}-${edge.target}`,
+        severity: "critical",
+        title: `${label(from)} -> ${label(to)} is an anti-pattern`,
+        message: evaluation.message,
+      });
+    } else if (evaluation.status === "warning") {
+      findings.push({
+        id: `warn-connection-${edge.source}-${edge.target}`,
+        severity: "warning",
+        title: `${label(from)} -> ${label(to)} skips a benefit`,
+        message: evaluation.message,
+      });
+    }
+  }
+
+  // Multiple APIs but nothing load-balancing them.
+  const apis = nodesOfType(nodes, "api");
+  const hasLoadBalancer = nodesOfType(nodes, "load-balancer").length > 0;
+  const hasGateway = nodesOfType(nodes, "api-gateway").length > 0;
+  if (apis.length >= 2 && !hasLoadBalancer && !hasGateway) {
+    findings.push({
+      id: "multi-api-no-lb",
+      severity: "warning",
+      title: "Multiple API instances, nothing distributing traffic",
+      message: "You have more than one API Server but no Load Balancer or API Gateway in front of them. Without one, traffic isn't actually spread across the replicas -- add one so clients hit a single entry point.",
+    });
+  }
+
+  // Single API instance carrying real traffic.
+  if (apis.length === 1 && connectedIds.has(apis[0].id) && metrics.rps > 0) {
+    findings.push({
+      id: "single-api-spof",
+      severity: "tip",
+      title: "One API instance is a single point of failure",
+      message: "If this server goes down, the whole system goes down with it. A second replica behind a Load Balancer removes this risk and raises your throughput ceiling.",
+    });
+  }
+
+  // Single database instance as the sole source of truth.
+  const databases = nodesOfType(nodes, "database");
+  if (databases.length === 1 && connectedIds.has(databases[0].id)) {
+    const db = databases[0];
+    if (db.data.variant !== "read-replica" && apis.length >= 2) {
+      findings.push({
+        id: "single-db-with-scaled-api",
+        severity: "warning",
+        title: "Your API tier is redundant, but your database isn't",
+        message: "You've scaled the API layer horizontally, but everything still funnels into one database instance. It's now the new single point of failure and the hard ceiling on your throughput -- a Read Replica raises both.",
+      });
+    }
+  }
+
+  // API talking directly to a database with real load, no cache in sight.
+  const hasCache = nodesOfType(nodes, "cache").length > 0;
+  const apiToDbDirect = edges.some(
+    (e) => !e.data?.severed && nodeType(e.source) === "api" && nodeType(e.target) === "database"
+  );
+  if (apiToDbDirect && !hasCache && metrics.rps >= 1000) {
+    findings.push({
+      id: "no-cache-under-load",
+      severity: "tip",
+      title: "Every read is hitting the database directly",
+      message: `At ${metrics.rps.toLocaleString()} RPS, a Cache in front of the database would absorb repeated reads and take real pressure off it.`,
+    });
+  }
+
+  // Worker exists but nothing feeds it except a direct API call (already
+  // caught above as a "warning" connection, but add the constructive nudge).
+  const hasWorker = nodesOfType(nodes, "worker").length > 0;
+  const hasQueueOrBroker = nodesOfType(nodes, "queue").length > 0 || nodesOfType(nodes, "message-broker").length > 0;
+  if (hasWorker && !hasQueueOrBroker) {
+    findings.push({
+      id: "worker-no-buffer",
+      severity: "tip",
+      title: "A Worker with nothing buffering its input",
+      message: "Workers are meant to process jobs handed off by a Queue or Message Broker, which absorb traffic spikes. Without one, a burst of requests can overwhelm the worker directly.",
+    });
+  }
+
+  // CAP consistency dialed high -- point out the trade-off is deliberate,
+  // not a mistake, but make sure it's understood.
+  for (const db of databases) {
+    if (db.data.consistency >= 80) {
+      findings.push({
+        id: `high-consistency-${db.id}`,
+        severity: "tip",
+        title: "Strong consistency has an availability cost",
+        message: `${db.data.customLabel || "This database"} is dialed toward Strong consistency (${db.data.consistency}). That's the right call for data that can't be stale, but it's why your availability ceiling is lower than a design with the same components at default consistency.`,
+      });
+    }
+  }
+
+  // Degradation left dialed up -- likely forgotten test state.
+  const degraded = alive.filter((n) => n.data.degradation > 0);
+  if (degraded.length > 0) {
+    findings.push({
+      id: "degradation-left-on",
+      severity: "tip",
+      title: "Simulated degradation is still active",
+      message: `${degraded.length === 1 ? "One component has" : `${degraded.length} components have`} a degradation slider dialed above 0. If that wasn't intentional, reset it in the Node Inspector -- it's quietly costing you latency and capacity.`,
+    });
+  }
+
+  // Bottleneck callout using data the engine already computes.
+  if (metrics.bottleneckNodeId) {
+    const bottleneck = nodes.find((n) => n.id === metrics.bottleneckNodeId);
+    if (bottleneck) {
+      findings.push({
+        id: "bottleneck",
+        severity: "tip",
+        title: `${bottleneck.data.customLabel || label(bottleneck.data.type)} is your current bottleneck`,
+        message: "This is the node capping your overall throughput. Scaling it -- a bigger variant, a second instance, or offloading some of its work -- will raise your ceiling more than scaling anything else.",
+      });
+    }
+  }
+
+  // API variant likely oversized for the load it's actually carrying.
+  const microserviceApisIdle = apis.filter(
+    (a) => a.data.variant === "microservices" && metrics.rps > 0 && metrics.rps < a.data.maxRps * 0.15
+  );
+  if (microserviceApisIdle.length > 0 && apis.length <= 2) {
+    findings.push({
+      id: "oversized-variant",
+      severity: "tip",
+      title: "Microservices instance running far under capacity",
+      message: "At this traffic level, a cheaper Monolith instance would likely handle the load fine. Microservices cost more per instance -- worth it once you actually need the extra capacity or independent scaling, not before.",
+    });
+  }
+
+  return findings.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+}

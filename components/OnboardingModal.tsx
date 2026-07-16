@@ -1,30 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MousePointerClick, Cable, SlidersHorizontal, Skull, X } from "lucide-react";
+import { Map, Cable, Sparkles, Skull, X } from "lucide-react";
 
-const SEEN_KEY = "sysforge-onboarding-seen";
+const SEEN_KEY = "sysforge-onboarding-seen-v2";
 
 const STEPS = [
   {
-    icon: MousePointerClick,
-    title: "Add components",
-    body: "Click a component in the sidebar to drop it on the canvas, or drag it to a specific spot.",
+    icon: Map,
+    title: "60 levels, 20 real-world scenarios",
+    body: "Open the Level Map to pick a project -- URL shorteners, ride-matching, fintech risk platforms, and more -- each with Easy, Medium, and Hard tiers that raise the bar as you go.",
   },
   {
     icon: Cable,
-    title: "Connect anything, anywhere",
-    body: "Drag from any edge of a node to any other node -- connections route themselves cleanly no matter which side you grab.",
+    title: "Build it, and understand why",
+    body: "Click a component to drop it, drag from any edge to connect two nodes, and every requirement comes with a short explanation of the real concept behind it -- not just a checklist.",
   },
   {
-    icon: SlidersHorizontal,
-    title: "Configure and learn trade-offs",
-    body: "Click a node to switch its configuration (e.g. Monolith vs Microservices) and see the real trade-offs of each choice.",
+    icon: Sparkles,
+    title: "Get a second opinion",
+    body: "Open Design Critique any time -- in a level or in Sandbox -- for rule-based feedback on single points of failure, missing caches, anti-pattern connections, and more.",
   },
   {
     icon: Skull,
     title: "Break it on purpose",
-    body: "Use Chaos Monkey to kill a node or sever a connection, then watch your metrics react in real time.",
+    body: "Use Chaos Monkey to kill a node or sever a connection, then watch your metrics react in real time. Nothing you build is safe until it survives that.",
   },
 ];
 

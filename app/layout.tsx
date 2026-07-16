@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SysForge",
+  title: "System Design Simulator",
   description: "Learn system design through gamified, drag-and-drop architecture puzzles.",
 };
 

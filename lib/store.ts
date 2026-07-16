@@ -21,6 +21,7 @@ import {
   getVariant,
   SystemComponent,
 } from "./engine";
+import { DEFAULT_LEVEL_ID } from "./campaign";
 
 export type SystemNodeType = Node<SystemComponent>;
 
@@ -89,6 +90,8 @@ interface SysForgeState {
   chaosEvent: ChaosEvent | null;
   mobileSidebarOpen: boolean;
   mobileGuidedPanelOpen: boolean;
+  critiquePanelOpen: boolean;
+  completedLevelIds: string[];
   past: HistorySnapshot[];
   future: HistorySnapshot[];
 
@@ -109,6 +112,8 @@ interface SysForgeState {
   setDrawColor: (color: string) => void;
   setMobileSidebarOpen: (open: boolean) => void;
   setMobileGuidedPanelOpen: (open: boolean) => void;
+  setCritiquePanelOpen: (open: boolean) => void;
+  markLevelComplete: (levelId: string) => void;
   killRandomNode: () => void;
   reviveAllNodes: () => void;
   resetGraph: () => void;
@@ -177,7 +182,7 @@ export const useSysForgeStore = create<SysForgeState>()(
         simulateTraffic: false,
         appMode: "guided",
         simulatedLoad: null,
-        currentLevelId: "level-1-url-shortener",
+        currentLevelId: DEFAULT_LEVEL_ID,
         savedDesigns: {},
         bottleneckNodeId: null,
         saturatedNodeIds: [],
@@ -186,6 +191,8 @@ export const useSysForgeStore = create<SysForgeState>()(
         chaosEvent: null,
         mobileSidebarOpen: false,
         mobileGuidedPanelOpen: false,
+        critiquePanelOpen: false,
+        completedLevelIds: [],
         past: [],
         future: [],
 
@@ -308,6 +315,13 @@ export const useSysForgeStore = create<SysForgeState>()(
         setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 
         setMobileGuidedPanelOpen: (open) => set({ mobileGuidedPanelOpen: open }),
+
+        setCritiquePanelOpen: (open) => set({ critiquePanelOpen: open }),
+
+        markLevelComplete: (levelId) => {
+          if (get().completedLevelIds.includes(levelId)) return;
+          set({ completedLevelIds: [...get().completedLevelIds, levelId] });
+        },
 
         killRandomNode: () => {
           const { nodes, edges, provider } = get();
@@ -579,6 +593,7 @@ export const useSysForgeStore = create<SysForgeState>()(
         appMode: state.appMode,
         currentLevelId: state.currentLevelId,
         savedDesigns: state.savedDesigns,
+        completedLevelIds: state.completedLevelIds,
       }),
     }
   )

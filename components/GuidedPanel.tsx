@@ -1,9 +1,17 @@
 "use client";
 
-import { Check, X, Trophy, ListChecks, Gauge } from "lucide-react";
-import { Level, validateLevel } from "@/lib/campaign";
+import { useEffect, useState } from "react";
+import { ArrowRight, Check, X, Trophy, ListChecks, Gauge, BookOpen } from "lucide-react";
+import { Difficulty, Level, LEVELS, getNextLevelId, validateLevel } from "@/lib/campaign";
 import { GraphEdge, GraphNode, SystemMetrics } from "@/lib/engine";
 import { useSysForgeStore } from "@/lib/store";
+import DebriefModal from "./DebriefModal";
+
+const DIFFICULTY_BADGE: Record<Difficulty, string> = {
+  easy: "border-emerald-700 bg-emerald-950/50 text-emerald-300",
+  medium: "border-amber-700 bg-amber-950/50 text-amber-300",
+  hard: "border-red-700 bg-red-950/50 text-red-300",
+};
 
 export default function GuidedPanel({
   level,
@@ -19,6 +27,29 @@ export default function GuidedPanel({
   const { progress, allComplete } = validateLevel(level, nodes, edges, metrics);
   const mobileGuidedPanelOpen = useSysForgeStore((s) => s.mobileGuidedPanelOpen);
   const setMobileGuidedPanelOpen = useSysForgeStore((s) => s.setMobileGuidedPanelOpen);
+  const completedLevelIds = useSysForgeStore((s) => s.completedLevelIds);
+  const markLevelComplete = useSysForgeStore((s) => s.markLevelComplete);
+  const setCurrentLevelId = useSysForgeStore((s) => s.setCurrentLevelId);
+  const [showDebrief, setShowDebrief] = useState(false);
+
+  useEffect(() => {
+    setShowDebrief(false);
+  }, [level.id]);
+
+  useEffect(() => {
+    if (allComplete && !completedLevelIds.includes(level.id)) {
+      markLevelComplete(level.id);
+      setShowDebrief(true);
+    }
+  }, [allComplete, level.id, completedLevelIds, markLevelComplete]);
+
+  const nextLevelId = getNextLevelId(level.id);
+  const nextLevel = LEVELS.find((l) => l.id === nextLevelId);
+  const goToNextLevel = () => {
+    setShowDebrief(false);
+    setCurrentLevelId(nextLevelId);
+    setMobileGuidedPanelOpen(false);
+  };
 
   return (
     <>
@@ -35,8 +66,19 @@ export default function GuidedPanel({
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-100">{level.title}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-zinc-100">{level.projectTitle}</h2>
+              <span
+                className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${DIFFICULTY_BADGE[level.difficulty]}`}
+              >
+                {level.difficulty}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs font-medium text-zinc-400">{level.title}</p>
             <p className="mt-1 text-xs text-zinc-500">{level.scenario}</p>
+            <p className="mt-1 text-[11px] text-zinc-600">
+              {completedLevelIds.length} / {LEVELS.length} levels complete
+            </p>
           </div>
           <button
             type="button"
@@ -72,7 +114,7 @@ export default function GuidedPanel({
         <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
           Your Progress
         </div>
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {progress.map((p) => (
             <li key={p.objectiveId} className="flex items-start gap-2 text-sm">
               {p.completed ? (
@@ -80,21 +122,54 @@ export default function GuidedPanel({
               ) : (
                 <X size={16} className="mt-0.5 shrink-0 text-zinc-600" />
               )}
-              <span className={p.completed ? "text-zinc-300 line-through" : "text-zinc-400"}>
-                {p.description}
-              </span>
+              <div>
+                <span className={p.completed ? "text-zinc-300 line-through" : "text-zinc-400"}>
+                  {p.description}
+                </span>
+                <p className="mt-0.5 text-[11px] leading-snug text-zinc-600">{p.why}</p>
+              </div>
             </li>
           ))}
         </ul>
       </div>
 
       {allComplete && (
-        <div className="mt-2 flex items-center gap-2 rounded-md border border-emerald-700 bg-emerald-950/50 px-3 py-2 text-sm text-emerald-300">
-          <Trophy size={16} />
-          Level complete!
+        <div className="mt-2 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2 rounded-md border border-emerald-700 bg-emerald-950/50 px-3 py-2 text-sm text-emerald-300">
+            <span className="flex items-center gap-2">
+              <Trophy size={16} />
+              Level complete!
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowDebrief(true)}
+              title="View debrief"
+              className="text-emerald-400 hover:text-emerald-200"
+            >
+              <BookOpen size={15} />
+            </button>
+          </div>
+          {nextLevel && (
+            <button
+              type="button"
+              onClick={goToNextLevel}
+              className="flex items-center justify-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-900/40 px-3 py-2 text-sm font-medium text-emerald-200 transition-colors hover:bg-emerald-900/70"
+            >
+              Next: {nextLevel.projectTitle} ({nextLevel.difficulty})
+              <ArrowRight size={14} />
+            </button>
+          )}
         </div>
       )}
       </aside>
+      {showDebrief && (
+        <DebriefModal
+          level={level}
+          onClose={() => setShowDebrief(false)}
+          onNext={goToNextLevel}
+          nextLevelLabel={nextLevel ? `${nextLevel.projectTitle} (${nextLevel.difficulty})` : null}
+        />
+      )}
     </>
   );
 }

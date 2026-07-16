@@ -14,6 +14,7 @@ import {
   Pause,
   Play,
   Redo2,
+  Sparkles,
   Undo2,
 } from "lucide-react";
 import { useSysForgeStore } from "@/lib/store";
@@ -83,6 +84,7 @@ export default function Toolbar() {
   const setAppMode = useSysForgeStore((s) => s.setAppMode);
   const setMobileSidebarOpen = useSysForgeStore((s) => s.setMobileSidebarOpen);
   const setMobileGuidedPanelOpen = useSysForgeStore((s) => s.setMobileGuidedPanelOpen);
+  const setCritiquePanelOpen = useSysForgeStore((s) => s.setCritiquePanelOpen);
 
   const nodeInternals = useStore((s) => s.nodeInternals);
   const { fitView } = useReactFlow();
@@ -179,6 +181,14 @@ export default function Toolbar() {
       <button onClick={onShare} title="Copy a shareable link to this design" className={btnClass}>
         {copied ? <Check size={14} className="text-emerald-400" /> : <LinkIcon size={14} />}
         {copied ? "Copied!" : "Share"}
+      </button>
+      <button
+        onClick={() => setCritiquePanelOpen(true)}
+        title="Get feedback on your current design"
+        className={btnClass}
+      >
+        <Sparkles size={14} />
+        Critique
       </button>
       <ProjectsMenu />
 

@@ -13,7 +13,7 @@ export default function LandingFooter() {
         <a href="https://byoos.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-[#4285F4]">
           Byoos
         </a>
-        <a href="https://reactmaster.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-[#EA4335]">
+        <a href="https://reactmastery.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-[#EA4335]">
           ReactMastery
         </a>
         <a href="https://psachno.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-[#FBBC05]">

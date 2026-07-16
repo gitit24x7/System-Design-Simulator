@@ -1,23 +1,36 @@
 "use client";
 
-import { LEVELS } from "@/lib/campaign";
+import { useState } from "react";
+import { Map } from "lucide-react";
+import { getLevel, PROJECTS } from "@/lib/campaign";
 import { useSysForgeStore } from "@/lib/store";
+import LevelMapModal from "./LevelMapModal";
+
+const TOTAL_LEVELS = PROJECTS.length * 3;
 
 export default function LevelSelector() {
   const currentLevelId = useSysForgeStore((s) => s.currentLevelId);
-  const setCurrentLevelId = useSysForgeStore((s) => s.setCurrentLevelId);
+  const completedLevelIds = useSysForgeStore((s) => s.completedLevelIds);
+  const [open, setOpen] = useState(false);
+  const level = getLevel(currentLevelId);
 
   return (
-    <select
-      value={currentLevelId}
-      onChange={(e) => setCurrentLevelId(e.target.value)}
-      className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 focus:outline-none"
-    >
-      {LEVELS.map((level) => (
-        <option key={level.id} value={level.id}>
-          {level.title}
-        </option>
-      ))}
-    </select>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title="Browse all projects and levels"
+        className="flex shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-800"
+      >
+        <Map size={14} />
+        <span className="max-w-[160px] truncate">
+          {level ? `${level.projectTitle} (${level.difficulty})` : "Pick a level"}
+        </span>
+        <span className="text-zinc-500">
+          {completedLevelIds.length}/{TOTAL_LEVELS}
+        </span>
+      </button>
+      {open && <LevelMapModal onClose={() => setOpen(false)} />}
+    </>
   );
 }
