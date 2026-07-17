@@ -2,55 +2,16 @@
 
 import Link from "next/link";
 
-const NODE_POSITIONS = [
-  { x: 12, y: 55, label: "CLIENT" },
-  { x: 34, y: 35, label: "LB" },
-  { x: 34, y: 80, label: "CACHE" },
-  { x: 60, y: 55, label: "API" },
-  { x: 84, y: 55, label: "DB" },
-];
-
-const NODE_LINKS: [number, number][] = [
-  [0, 1],
-  [0, 2],
-  [1, 3],
-  [2, 3],
-  [3, 4],
-];
-
 function CanvasMockup() {
   return (
-    <div className="relative h-[280px] overflow-hidden bg-[#0a0a0a] sm:h-[400px]">
-      <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
-        {NODE_LINKS.map(([a, b], i) => (
-          <line
-            key={i}
-            x1={`${NODE_POSITIONS[a].x}%`}
-            y1={`${NODE_POSITIONS[a].y}%`}
-            x2={`${NODE_POSITIONS[b].x}%`}
-            y2={`${NODE_POSITIONS[b].y}%`}
-            stroke="#34a853"
-            strokeWidth={2}
-            opacity={0.6}
-          />
-        ))}
-      </svg>
-      {NODE_POSITIONS.map((n) => (
-        <div
-          key={n.label}
-          className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap border-[1.5px] border-[#4285f4] bg-[#111] px-1.5 py-1 text-[10px] font-bold text-[#eaf2ff] sm:px-3 sm:py-2 sm:text-[11px]"
-          style={{ left: `${n.x}%`, top: `${n.y}%` }}
-        >
-          {n.label}
-        </div>
-      ))}
+    <div className="relative overflow-hidden bg-[#0a0a0a]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/hero-canvas.png"
+        alt="A real design built in System Design Simulator: Client, Load Balancer, an API server flagged as the current bottleneck, a Cache, and a Database, all wired together with live throughput/latency/cost stats."
+        className="block h-auto w-full"
+      />
       <div className="sds-scan absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#4285f4]/85 to-transparent" />
-      <div className="absolute left-3 top-3 border-[1.5px] border-[#34A853] bg-white/90 px-2 py-1.5 text-[10px] font-bold text-[#34A853] sm:left-6 sm:top-5 sm:px-3 sm:text-[11px]">
-        THROUGHPUT: 12,400 RPS
-      </div>
-      <div className="absolute right-3 top-3 border-[1.5px] border-[#EA4335] bg-white/90 px-2 py-1.5 text-[10px] font-bold text-[#EA4335] sm:right-6 sm:top-5 sm:px-3 sm:text-[11px]">
-        LATENCY: 38 MS
-      </div>
     </div>
   );
 }

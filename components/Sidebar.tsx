@@ -95,11 +95,11 @@ export default function Sidebar() {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col gap-2 overflow-y-auto border-r border-zinc-800 bg-zinc-950 p-3 transition-transform duration-200 lg:static lg:z-auto lg:w-56 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-56 shrink-0 flex-col gap-1.5 overflow-y-auto border-r border-zinc-800 bg-zinc-950 p-2 transition-transform duration-200 lg:static lg:z-auto lg:w-44 lg:translate-x-0 ${
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-1 flex items-center justify-between">
+        <div className="mb-0.5 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Components
           </h2>
@@ -111,7 +111,7 @@ export default function Sidebar() {
             <X size={16} />
           </button>
         </div>
-        <p className="mb-1 text-[11px] text-zinc-600">Click to place, or drag onto the canvas.</p>
+        <p className="mb-0.5 text-[10px] leading-snug text-zinc-600">Click to place, or drag onto the canvas.</p>
         {PALETTE.map((type) => {
           const Icon = ICONS[type];
           return (
@@ -121,33 +121,33 @@ export default function Sidebar() {
               draggable
               onDragStart={(e) => onDragStart(e, type)}
               onClick={() => onClickAdd(type)}
-              className="flex cursor-grab items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-sm text-zinc-200 transition-colors hover:border-emerald-600 hover:bg-zinc-800 active:cursor-grabbing"
+              className="flex cursor-grab items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left text-[13px] text-zinc-200 transition-colors hover:border-emerald-600 hover:bg-zinc-800 active:cursor-grabbing"
             >
-              <Icon size={16} className="text-emerald-400" />
-              {TYPE_LABELS[type]}
+              <Icon size={14} className="shrink-0 text-emerald-400" />
+              <span className="truncate">{TYPE_LABELS[type]}</span>
             </button>
           );
         })}
 
-        <div className="my-1 border-t border-zinc-800" />
+        <div className="my-0.5 border-t border-zinc-800" />
         <button
           type="button"
           draggable
           onDragStart={(e) => onDragStart(e, "custom")}
           onClick={() => onClickAdd("custom")}
           title="Add a component with your own name, throughput, latency, and cost"
-          className="flex cursor-grab items-center gap-2 rounded-md border border-dashed border-violet-700/60 bg-violet-950/20 px-3 py-2 text-left text-sm text-violet-200 transition-colors hover:border-violet-500 hover:bg-violet-950/40 active:cursor-grabbing"
+          className="flex cursor-grab items-center gap-1.5 rounded-md border border-dashed border-violet-700/60 bg-violet-950/20 px-2 py-1.5 text-left text-[13px] text-violet-200 transition-colors hover:border-violet-500 hover:bg-violet-950/40 active:cursor-grabbing"
         >
-          <Blocks size={16} className="text-violet-400" />
-          Custom Component
+          <Blocks size={14} className="shrink-0 text-violet-400" />
+          <span className="truncate">Custom Component</span>
         </button>
         <button
           type="button"
           onClick={onClickAddNote}
-          className="flex items-center gap-2 rounded-md border border-amber-800/50 bg-amber-950/30 px-3 py-2 text-left text-sm text-amber-200 transition-colors hover:border-amber-600 hover:bg-amber-950/60"
+          className="flex items-center gap-1.5 rounded-md border border-amber-800/50 bg-amber-950/30 px-2 py-1.5 text-left text-[13px] text-amber-200 transition-colors hover:border-amber-600 hover:bg-amber-950/60"
         >
-          <StickyNote size={16} className="text-amber-400" />
-          Sticky Note
+          <StickyNote size={14} className="shrink-0 text-amber-400" />
+          <span className="truncate">Sticky Note</span>
         </button>
       </aside>
     </>
