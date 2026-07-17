@@ -10,7 +10,7 @@ import {
   NodeChange,
 } from "reactflow";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import {
   CloudProvider,
   COMPONENT_DEFAULTS,
@@ -47,6 +47,33 @@ export interface ChaosEvent {
   message: string;
   key: number;
 }
+
+// Wraps localStorage so persistence degrades gracefully (in-memory only,
+// no crash) instead of throwing -- private browsing, blocked storage, and
+// quota-exceeded errors are all real conditions a random user can hit.
+const safeStorage = createJSONStorage(() => ({
+  getItem: (name: string) => {
+    try {
+      return localStorage.getItem(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name: string, value: string) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch {
+      // storage disabled or full -- state simply won't persist this change
+    }
+  },
+  removeItem: (name: string) => {
+    try {
+      localStorage.removeItem(name);
+    } catch {
+      // ignore
+    }
+  },
+}));
 
 let idCounter = 0;
 function nextId(prefix: string) {
@@ -91,6 +118,7 @@ interface SysForgeState {
   mobileSidebarOpen: boolean;
   mobileGuidedPanelOpen: boolean;
   critiquePanelOpen: boolean;
+  glossaryPanelOpen: boolean;
   completedLevelIds: string[];
   past: HistorySnapshot[];
   future: HistorySnapshot[];
@@ -113,6 +141,7 @@ interface SysForgeState {
   setMobileSidebarOpen: (open: boolean) => void;
   setMobileGuidedPanelOpen: (open: boolean) => void;
   setCritiquePanelOpen: (open: boolean) => void;
+  setGlossaryPanelOpen: (open: boolean) => void;
   markLevelComplete: (levelId: string) => void;
   killRandomNode: () => void;
   reviveAllNodes: () => void;
@@ -122,6 +151,10 @@ interface SysForgeState {
   updateNodeSecondaryVariant: (nodeId: string, optionId: string) => void;
   updateNodeConsistency: (nodeId: string, consistency: number) => void;
   updateNodeDegradation: (nodeId: string, degradation: number) => void;
+  updateNodeCustomStats: (
+    nodeId: string,
+    patch: Partial<Pick<SystemComponent, "maxRps" | "latencyMs" | "costPerMonth">>
+  ) => void;
   removeEdge: (edgeId: string) => void;
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => void;
@@ -192,6 +225,7 @@ export const useSysForgeStore = create<SysForgeState>()(
         mobileSidebarOpen: false,
         mobileGuidedPanelOpen: false,
         critiquePanelOpen: false,
+        glossaryPanelOpen: false,
         completedLevelIds: [],
         past: [],
         future: [],
@@ -318,6 +352,8 @@ export const useSysForgeStore = create<SysForgeState>()(
 
         setCritiquePanelOpen: (open) => set({ critiquePanelOpen: open }),
 
+        setGlossaryPanelOpen: (open) => set({ glossaryPanelOpen: open }),
+
         markLevelComplete: (levelId) => {
           if (get().completedLevelIds.includes(levelId)) return;
           set({ completedLevelIds: [...get().completedLevelIds, levelId] });
@@ -426,6 +462,15 @@ export const useSysForgeStore = create<SysForgeState>()(
           });
         },
 
+        updateNodeCustomStats: (nodeId, patch) => {
+          snapshot();
+          set({
+            nodes: get().nodes.map((n) =>
+              n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n
+            ),
+          });
+        },
+
         removeEdge: (edgeId) => {
           snapshot();
           set({ edges: get().edges.filter((e) => e.id !== edgeId) });
@@ -522,7 +567,7 @@ export const useSysForgeStore = create<SysForgeState>()(
           set({ bottleneckNodeId, saturatedNodeIds }),
 
         saveDesignAs: (name) => {
-          const trimmed = name.trim();
+          const trimmed = name.trim().slice(0, 60);
           if (!trimmed) return;
           const { nodes, edges, notes, strokes, savedDesigns } = get();
           set({
@@ -584,6 +629,7 @@ export const useSysForgeStore = create<SysForgeState>()(
     },
     {
       name: "sysforge-storage",
+      storage: safeStorage,
       partialize: (state) => ({
         nodes: state.nodes,
         edges: state.edges,

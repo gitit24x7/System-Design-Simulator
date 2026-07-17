@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { label: "FEATURES", href: "/#features" },
   { label: "HOW_IT_WORKS", href: "/#how-it-works" },
   { label: "REVIEWS", href: "/#reviews" },
+  { label: "GLOSSARY", href: "/glossary" },
   { label: "ABOUT", href: "/about" },
 ];
 

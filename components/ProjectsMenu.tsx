@@ -32,6 +32,7 @@ export default function ProjectsMenu() {
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
               placeholder="Design name..."
+              maxLength={60}
               className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 focus:border-emerald-600 focus:outline-none"
             />
             <button

@@ -18,7 +18,8 @@ export type ComponentType =
   | "object-storage"
   | "queue"
   | "message-broker"
-  | "worker";
+  | "worker"
+  | "custom";
 
 export type NodeHealth = "healthy" | "dead";
 
@@ -324,6 +325,17 @@ export const COMPONENT_VARIANTS: Record<ComponentType, ComponentVariant[]> = {
       },
     },
   ],
+  custom: [
+    {
+      id: "default",
+      label: "Custom Component",
+      maxRps: 1000,
+      latencyMs: 10,
+      costPerMonth: 50,
+      pros: ["Fully editable -- set your own throughput, latency, and cost", "Model anything not covered by the built-in components"],
+      cons: ["The rules engine doesn't know what this represents, so it won't flag connection anti-patterns for it"],
+    },
+  ],
 };
 
 const PROTOCOL_AXIS: SecondaryVariantAxis = {
@@ -452,6 +464,7 @@ export const TYPE_LABELS: Record<ComponentType, string> = {
   queue: "Queue",
   "message-broker": "Message Broker",
   worker: "Worker",
+  custom: "Custom Component",
 };
 
 export const PROVIDER_LABELS: Record<CloudProvider, string> = {

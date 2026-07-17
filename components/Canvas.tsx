@@ -32,6 +32,7 @@ import OnboardingModal from "./OnboardingModal";
 import AnnotationLayer from "./AnnotationLayer";
 import AnnotationToolbar from "./AnnotationToolbar";
 import CritiquePanel from "./CritiquePanel";
+import GlossaryPanel from "./GlossaryPanel";
 
 const nodeTypes = { systemNode: SystemNode, noteNode: NoteNode };
 const edgeTypes = { floating: FloatingEdge };
@@ -76,7 +77,7 @@ function CanvasInner() {
     () => calculateSystemMetrics(nodes, edges, provider, demandCapRps),
     [nodes, edges, provider, demandCapRps]
   );
-  const level = getLevel(currentLevelId) ?? getLevel(DEFAULT_LEVEL_ID)!;
+  const level = getLevel(currentLevelId) ?? getLevel(DEFAULT_LEVEL_ID) ?? null;
 
   useEffect(() => {
     setLiveMetrics(metrics.bottleneckNodeId, metrics.saturatedNodeIds);
@@ -244,9 +245,10 @@ function CanvasInner() {
           <ChaosToast />
           <NodeInspector />
           <CritiquePanel nodes={nodes} edges={edges} metrics={metrics} />
+          <GlossaryPanel />
         </div>
       </div>
-      {appMode === "guided" && (
+      {appMode === "guided" && level && (
         <GuidedPanel level={level} nodes={nodes} edges={edges} metrics={metrics} />
       )}
     </div>

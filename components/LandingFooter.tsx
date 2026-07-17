@@ -7,6 +7,9 @@ export default function LandingFooter() {
         <Link href="/about" className="hover:text-[#4285F4]">
           About
         </Link>
+        <Link href="/glossary" className="hover:text-[#34A853]">
+          Glossary
+        </Link>
         <Link href="/privacy" className="hover:text-[#EA4335]">
           Privacy
         </Link>

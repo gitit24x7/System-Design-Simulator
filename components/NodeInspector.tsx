@@ -50,15 +50,27 @@ export default function NodeInspector() {
   const updateNodeSecondaryVariant = useSysForgeStore((s) => s.updateNodeSecondaryVariant);
   const updateNodeConsistency = useSysForgeStore((s) => s.updateNodeConsistency);
   const updateNodeDegradation = useSysForgeStore((s) => s.updateNodeDegradation);
+  const updateNodeCustomStats = useSysForgeStore((s) => s.updateNodeCustomStats);
   const removeNode = useSysForgeStore((s) => s.removeNode);
   const duplicateNode = useSysForgeStore((s) => s.duplicateNode);
   const renameNode = useSysForgeStore((s) => s.renameNode);
 
   const [labelDraft, setLabelDraft] = useState("");
+  const [statsDraft, setStatsDraft] = useState({ maxRps: "", latencyMs: "", costPerMonth: "" });
 
   useEffect(() => {
     if (node) setLabelDraft(node.data.customLabel ?? "");
   }, [node?.id]);
+
+  useEffect(() => {
+    if (node && node.data.type === "custom") {
+      setStatsDraft({
+        maxRps: String(node.data.maxRps),
+        latencyMs: String(node.data.latencyMs),
+        costPerMonth: String(node.data.costPerMonth),
+      });
+    }
+  }, [node?.id, node?.data.type]);
 
   if (!selectedNodeId || !node) return null;
 
@@ -71,8 +83,19 @@ export default function NodeInspector() {
   const secondaryAxis = getSecondaryVariants(node.data.type);
   const activeSecondary = secondaryAxis ? getSecondaryVariant(node.data.type, node.data.secondaryVariant) : null;
   const showDegradationSlider = node.data.type !== "client";
+  const isCustom = node.data.type === "custom";
 
   const commitLabel = () => renameNode(node.id, labelDraft);
+
+  const commitStat = (key: "maxRps" | "latencyMs" | "costPerMonth", raw: string) => {
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0) {
+      // Invalid or negative input -- revert the draft instead of storing garbage.
+      setStatsDraft((prev) => ({ ...prev, [key]: String(node.data[key]) }));
+      return;
+    }
+    updateNodeCustomStats(node.id, { [key]: value });
+  };
 
   return (
     <div className="no-export absolute inset-x-2 bottom-2 z-20 max-h-[75vh] overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950/95 p-4 shadow-xl sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:w-96 sm:max-h-[70vh] sm:-translate-x-1/2">
@@ -135,6 +158,53 @@ export default function NodeInspector() {
         <div className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Trade-offs</div>
         <TradeoffList pros={activeVariant.pros} cons={activeVariant.cons} />
       </div>
+
+      {isCustom && (
+        <div className="mb-3">
+          <div className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Custom Stats</div>
+          <div className="grid grid-cols-3 gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] text-zinc-500">Max RPS</span>
+              <input
+                type="number"
+                min={0}
+                value={statsDraft.maxRps}
+                onChange={(e) => setStatsDraft((prev) => ({ ...prev, maxRps: e.target.value }))}
+                onBlur={(e) => commitStat("maxRps", e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 focus:border-emerald-600 focus:outline-none"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] text-zinc-500">Latency (ms)</span>
+              <input
+                type="number"
+                min={0}
+                value={statsDraft.latencyMs}
+                onChange={(e) => setStatsDraft((prev) => ({ ...prev, latencyMs: e.target.value }))}
+                onBlur={(e) => commitStat("latencyMs", e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 focus:border-emerald-600 focus:outline-none"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] text-zinc-500">Cost ($/mo)</span>
+              <input
+                type="number"
+                min={0}
+                value={statsDraft.costPerMonth}
+                onChange={(e) => setStatsDraft((prev) => ({ ...prev, costPerMonth: e.target.value }))}
+                onBlur={(e) => commitStat("costPerMonth", e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 focus:border-emerald-600 focus:outline-none"
+              />
+            </label>
+          </div>
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Set your own throughput, latency, and cost so this component behaves however you need it to in the simulation.
+          </p>
+        </div>
+      )}
 
       {secondaryAxis && (
         <div className="mb-3">

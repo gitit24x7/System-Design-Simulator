@@ -32,11 +32,21 @@ export default function OnboardingModal() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem(SEEN_KEY)) setVisible(true);
+    try {
+      if (!localStorage.getItem(SEEN_KEY)) setVisible(true);
+    } catch {
+      // localStorage blocked (private browsing, disabled storage, etc.) --
+      // just show the modal this session instead of crashing.
+      setVisible(true);
+    }
   }, []);
 
   const dismiss = () => {
-    localStorage.setItem(SEEN_KEY, "1");
+    try {
+      localStorage.setItem(SEEN_KEY, "1");
+    } catch {
+      // storage unavailable -- the modal will simply reappear next visit
+    }
     setVisible(false);
   };
 

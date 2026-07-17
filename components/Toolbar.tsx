@@ -5,6 +5,7 @@ import { useReactFlow, useStore } from "reactflow";
 import dagre from "dagre";
 import { toPng } from "html-to-image";
 import {
+  BookOpen,
   Check,
   Download,
   LayoutGrid,
@@ -85,6 +86,7 @@ export default function Toolbar() {
   const setMobileSidebarOpen = useSysForgeStore((s) => s.setMobileSidebarOpen);
   const setMobileGuidedPanelOpen = useSysForgeStore((s) => s.setMobileGuidedPanelOpen);
   const setCritiquePanelOpen = useSysForgeStore((s) => s.setCritiquePanelOpen);
+  const setGlossaryPanelOpen = useSysForgeStore((s) => s.setGlossaryPanelOpen);
 
   const nodeInternals = useStore((s) => s.nodeInternals);
   const { fitView } = useReactFlow();
@@ -189,6 +191,14 @@ export default function Toolbar() {
       >
         <Sparkles size={14} />
         Critique
+      </button>
+      <button
+        onClick={() => setGlossaryPanelOpen(true)}
+        title="Browse the system design glossary"
+        className={btnClass}
+      >
+        <BookOpen size={14} />
+        Glossary
       </button>
       <ProjectsMenu />
 

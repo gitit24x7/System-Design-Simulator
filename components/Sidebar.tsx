@@ -2,6 +2,7 @@
 
 import {
   Archive,
+  Blocks,
   Database,
   Globe,
   ListOrdered,
@@ -32,6 +33,7 @@ const ICONS: Record<ComponentType, LucideIcon> = {
   queue: ListOrdered,
   "message-broker": Radio,
   worker: Cog,
+  custom: Blocks,
 };
 
 const PALETTE: ComponentType[] = [
@@ -128,6 +130,17 @@ export default function Sidebar() {
         })}
 
         <div className="my-1 border-t border-zinc-800" />
+        <button
+          type="button"
+          draggable
+          onDragStart={(e) => onDragStart(e, "custom")}
+          onClick={() => onClickAdd("custom")}
+          title="Add a component with your own name, throughput, latency, and cost"
+          className="flex cursor-grab items-center gap-2 rounded-md border border-dashed border-violet-700/60 bg-violet-950/20 px-3 py-2 text-left text-sm text-violet-200 transition-colors hover:border-violet-500 hover:bg-violet-950/40 active:cursor-grabbing"
+        >
+          <Blocks size={16} className="text-violet-400" />
+          Custom Component
+        </button>
         <button
           type="button"
           onClick={onClickAddNote}

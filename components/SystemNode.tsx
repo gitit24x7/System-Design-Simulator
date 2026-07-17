@@ -4,6 +4,7 @@ import { Handle, NodeProps, Position } from "reactflow";
 import {
   Archive,
   AlertTriangle,
+  Blocks,
   Database,
   Flame,
   Globe,
@@ -41,6 +42,7 @@ const ICONS: Record<SystemComponent["type"], LucideIcon> = {
   queue: ListOrdered,
   "message-broker": Radio,
   worker: Cog,
+  custom: Blocks,
 };
 
 // Touch devices can't trigger :hover, so handles get a low baseline opacity
