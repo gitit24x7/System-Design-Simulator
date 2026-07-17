@@ -147,10 +147,10 @@ export default function Toolbar() {
   }, []);
 
   const btnClass =
-    "flex shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-zinc-900";
+    "flex shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-zinc-900";
 
   return (
-    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto border-b border-zinc-800 bg-zinc-950 px-2 py-1.5 lg:flex-wrap lg:overflow-x-visible">
+    <div className="flex flex-wrap items-center gap-1.5 border-b border-zinc-800 bg-zinc-950 px-2 py-1.5">
       <button
         onClick={() => setMobileSidebarOpen(true)}
         title="Open components panel"
@@ -166,7 +166,7 @@ export default function Toolbar() {
       </button>
       <button onClick={onTidyUp} title="Auto-arrange the graph" className={btnClass}>
         <LayoutGrid size={14} />
-        Tidy Up
+        <span className="hidden sm:inline">Tidy Up</span>
       </button>
       <button
         onClick={toggleSimulateTraffic}
@@ -174,15 +174,15 @@ export default function Toolbar() {
         className={`${btnClass} ${simulateTraffic ? "border-emerald-600 bg-emerald-950/50 text-emerald-300" : ""}`}
       >
         {simulateTraffic ? <Pause size={14} /> : <Play size={14} />}
-        Simulate Traffic
+        <span className="hidden sm:inline">Simulate Traffic</span>
       </button>
       <button onClick={onExportPng} title="Export as PNG" className={btnClass}>
         <Download size={14} />
-        Export
+        <span className="hidden sm:inline">Export</span>
       </button>
       <button onClick={onShare} title="Copy a shareable link to this design" className={btnClass}>
         {copied ? <Check size={14} className="text-emerald-400" /> : <LinkIcon size={14} />}
-        {copied ? "Copied!" : "Share"}
+        <span className="hidden sm:inline">{copied ? "Copied!" : "Share"}</span>
       </button>
       <button
         onClick={() => setCritiquePanelOpen(true)}
@@ -190,7 +190,7 @@ export default function Toolbar() {
         className={btnClass}
       >
         <Sparkles size={14} />
-        Critique
+        <span className="hidden sm:inline">Critique</span>
       </button>
       <button
         onClick={() => setGlossaryPanelOpen(true)}
@@ -198,7 +198,7 @@ export default function Toolbar() {
         className={btnClass}
       >
         <BookOpen size={14} />
-        Glossary
+        <span className="hidden sm:inline">Glossary</span>
       </button>
       <ProjectsMenu />
 

@@ -19,13 +19,13 @@ function Gauge_({
   return (
     <div
       title={title}
-      className="flex flex-1 flex-col items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2"
+      className="flex flex-1 flex-col items-center gap-0.5 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1"
     >
-      <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500">
-        <Icon size={12} />
+      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-zinc-500">
+        <Icon size={10} />
         {label}
       </div>
-      <span className={`text-lg font-semibold ${danger ? "text-red-400" : "text-zinc-100"}`}>
+      <span className={`text-sm font-semibold ${danger ? "text-red-400" : "text-zinc-100"}`}>
         {value}
       </span>
     </div>
@@ -41,7 +41,7 @@ export default function MetricsHUD({ metrics }: { metrics: SystemMetrics }) {
     `= ${metrics.availabilityPct.toFixed(2)}%`;
 
   return (
-    <div className="grid grid-cols-2 gap-2 border-b border-zinc-800 bg-zinc-950 p-2 sm:flex">
+    <div className="grid grid-cols-2 gap-1.5 border-b border-zinc-800 bg-zinc-950 p-1.5 sm:flex">
       <Gauge_ icon={Gauge} label="Throughput" value={`${metrics.rps.toLocaleString()} rps`} />
       <Gauge_ icon={Activity} label="Latency" value={`${metrics.latencyMs} ms`} />
       <Gauge_
