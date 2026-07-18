@@ -42,6 +42,13 @@ export interface SystemComponent {
    * node stays "healthy" (doesn't count as an outage) but runs slower and
    * with less capacity -- for testing partial failure, not just alive/dead. */
   degradation: number;
+  /** Only meaningful for type === "cache": the percentage of requests served
+   * from cache instead of reaching whatever it sits in front of. Drives how
+   * much extra capacity a healthy cache grants its downstream neighbor(s) --
+   * see cacheBoostMultiplier. Dialing a cache's own degradation up cools this
+   * down too (a "cold"/thrashing cache protects nothing downstream), so
+   * there's no separate "cache is cold" flag -- degradation already models it. */
+  cacheHitRatePct: number;
 }
 
 export type CloudProvider = "generic" | "aws" | "gcp" | "azure";
@@ -209,7 +216,7 @@ export const COMPONENT_VARIANTS: Record<ComponentType, ComponentVariant[]> = {
       latencyMs: 2,
       costPerMonth: 30,
       pros: ["Dramatically reduces read latency and DB load", "Cheap way to absorb read spikes"],
-      cons: ["Cache invalidation is famously hard", "Risk of serving stale data", "Cold-start cache stampede risk"],
+      cons: ["Cache invalidation is famously hard", "Risk of serving stale data", "Cold-start cache stampede risk -- a cold cache protects nothing downstream"],
       providers: {
         aws: { label: "Amazon ElastiCache (Redis)", costMultiplier: 1.0 },
         gcp: { label: "Memorystore", costMultiplier: 0.95 },
@@ -239,7 +246,7 @@ export const COMPONENT_VARIANTS: Record<ComponentType, ComponentVariant[]> = {
       latencyMs: 18,
       costPerMonth: 220,
       pros: ["Reads scale horizontally", "Improves read availability", "Can serve reads from a region closer to users"],
-      cons: ["Replication lag means stale reads (eventual consistency)", "Writes are still bottlenecked on the primary", "More expensive, more moving parts"],
+      cons: ["Replication lag means stale reads (eventual consistency)", "Writes are still bottlenecked on the primary", "More expensive, more moving parts", "Dialing toward Strong consistency now has real teeth -- synchronous replication to this replica costs write latency, unlike on a Single Instance"],
       providers: {
         aws: { label: "Amazon RDS (Read Replica)", costMultiplier: 1.15 },
         gcp: { label: "Cloud SQL (Read Replica)", costMultiplier: 1.05 },
@@ -502,27 +509,47 @@ export function getProviderCostMultiplier(
 }
 
 // CAP theorem trade-offs at the current consistency dial position, for
-// display in the Node Inspector.
-export function getCapTradeoffs(consistency: number): { pros: string[]; cons: string[] } {
+// display in the Node Inspector. Variant-aware because the actual cost is:
+// a Read Replica has something to synchronize with, so "Strong" genuinely
+// taxes its latency; a Single Instance doesn't, so the same dial barely
+// moves its numbers -- the copy should say that plainly instead of implying
+// a uniform cost that isn't what effectiveLatencyMs actually charges.
+export function getCapTradeoffs(
+  consistency: number,
+  variant?: string
+): { pros: string[]; cons: string[] } {
+  const isReplica = variant === "read-replica";
   if (consistency >= 50) {
     return {
       pros: [
         "Reads always return the latest write (linearizable)",
         "Simpler application logic -- no stale-read handling needed",
       ],
-      cons: [
-        "Higher write latency from synchronous replication/quorum",
-        "Lower availability: may reject requests during a network partition (CAP)",
-      ],
+      cons: isReplica
+        ? [
+            "Real write-latency cost here: the primary waits on synchronous replication to this replica before confirming a write",
+            "Lower availability: may reject requests during a network partition (CAP)",
+          ]
+        : [
+            "Barely costs anything on a Single Instance -- there's only one copy, so \"Strong\" is nearly free here",
+            "Lower availability: may reject requests during a network partition (CAP)",
+          ],
     };
   }
   return {
-    pros: [
-      "Lower latency -- no synchronous replication wait",
-      "Stays available and responsive during a network partition",
-    ],
+    pros: isReplica
+      ? [
+          "Meaningfully lower write latency -- no waiting on synchronous replication to this replica",
+          "Stays available and responsive during a network partition",
+        ]
+      : [
+          "Lower latency, though a Single Instance had little synchronous cost to shed in the first place",
+          "Stays available and responsive during a network partition",
+        ],
     cons: [
-      "Reads can return stale data (replication lag)",
+      isReplica
+        ? "Reads from this replica can return stale data (replication lag)"
+        : "Reads can return stale data (replication lag)",
       "Application must handle eventual convergence / conflicts",
     ],
   };
@@ -544,6 +571,7 @@ export const COMPONENT_DEFAULTS: Record<ComponentType, Omit<SystemComponent, "he
           secondaryVariant: "generic",
           consistency: 50,
           degradation: 0,
+          cacheHitRatePct: 85,
         },
       ];
     })
@@ -676,15 +704,24 @@ const ZERO_METRICS: SystemMetrics = {
 
 // CAP theorem tradeoff: dialing a database toward "strong" consistency adds
 // synchronous replication/quorum overhead (latency) and makes it more likely
-// to reject requests during a partition (availability).
-const CAP_MAX_LATENCY_MULTIPLIER = 0.5; // up to +50% latency at consistency=100
+// to reject requests during a partition (availability). Crucially, that
+// overhead only exists because there's another copy to synchronize with -- a
+// Single Instance has nothing to replicate to, so "Strong" costs it almost
+// nothing, while a Read Replica pays for real synchronous replication. Same
+// slider, same node type, genuinely different cost depending on the variant
+// you picked -- that's the whole point of exposing this as a live number
+// instead of a paragraph of prose.
+const CAP_MAX_LATENCY_MULTIPLIER_SINGLE = 0.08; // up to +8% latency at consistency=100 -- there's only one copy
+const CAP_MAX_LATENCY_MULTIPLIER_REPLICA = 0.9; // up to +90% latency at consistency=100 -- real synchronous replication
 const CAP_MAX_AVAILABILITY_PENALTY = 4; // up to -4 points per database node
 
 function effectiveLatencyMs(node: GraphNode): number {
   const base = getEffectiveLatencyMs(node.data);
   if (node.data.type !== "database") return base;
   const consistency = node.data.consistency ?? 50;
-  return base * (1 + (consistency / 100) * CAP_MAX_LATENCY_MULTIPLIER);
+  const multiplier =
+    node.data.variant === "read-replica" ? CAP_MAX_LATENCY_MULTIPLIER_REPLICA : CAP_MAX_LATENCY_MULTIPLIER_SINGLE;
+  return base * (1 + (consistency / 100) * multiplier);
 }
 
 // A node "counts" toward availability only if it's actually wired into the
@@ -711,6 +748,26 @@ function sumCost(nodes: GraphNode[], provider: CloudProvider): number {
     (sum, n) => sum + getEffectiveBaseCost(n.data) * getProviderCostMultiplier(n.data.type, n.data.variant, provider),
     0
   );
+}
+
+// A healthy cache doesn't just have its own capacity -- it shields whatever
+// it forwards traffic to from most of the load, which is the entire reason
+// "add a cache" helps a struggling database. Modeled as a capacity multiplier
+// on the node(s) directly downstream of an alive cache, derived from the
+// cache's hit rate: at an 85% hit rate, only 15% of traffic actually reaches
+// the database, so that database can sustain roughly 1/0.15 ≈ 6.7x its own
+// rated throughput before it's the bottleneck. Clamped so an unrealistic
+// 99%+ hit rate can't imply near-infinite downstream capacity.
+const CACHE_BOOST_MAX_MULTIPLIER = 12;
+
+function cacheBoostMultiplier(cache: SystemComponent): number {
+  // Degradation on the cache itself (a "cold" or thrashing cache) erodes the
+  // hit rate proportionally -- a fully degraded cache protects nothing
+  // downstream, same as if it weren't there at all.
+  const effectiveHitRate =
+    (Math.max(0, Math.min(99, cache.cacheHitRatePct ?? 85)) / 100) * (1 - (cache.degradation ?? 0) / 100);
+  if (effectiveHitRate <= 0) return 1;
+  return Math.min(CACHE_BOOST_MAX_MULTIPLIER, 1 / (1 - effectiveHitRate));
 }
 
 // --- Max-flow (Edmonds-Karp) over a node-capacity-constrained network -----
@@ -806,11 +863,20 @@ export function calculateSystemMetrics(
 
   const outgoing = new Map<string, string[]>();
   const hasIncoming = new Set<string>();
+  // Best (highest) capacity boost granted to each node by any alive cache
+  // directly upstream of it -- see cacheBoostMultiplier.
+  const incomingCacheBoost = new Map<string, number>();
   for (const edge of edges) {
     if (edge.data?.severed) continue;
     if (!aliveIds.has(edge.source) || !aliveIds.has(edge.target)) continue;
     outgoing.set(edge.source, [...(outgoing.get(edge.source) ?? []), edge.target]);
     hasIncoming.add(edge.target);
+
+    const sourceNode = nodesById.get(edge.source)!;
+    if (sourceNode.data.type === "cache") {
+      const boost = cacheBoostMultiplier(sourceNode.data);
+      incomingCacheBoost.set(edge.target, Math.max(incomingCacheBoost.get(edge.target) ?? 1, boost));
+    }
   }
 
   // Prefer client nodes as entry points. Only fall back to "root" nodes
@@ -860,7 +926,8 @@ export function calculateSystemMetrics(
 
     for (const id of reachable) {
       const node = nodesById.get(id)!;
-      addFlowEdge(graph, `${id}_in`, `${id}_out`, getEffectiveMaxRps(node.data));
+      const boost = incomingCacheBoost.get(id) ?? 1;
+      addFlowEdge(graph, `${id}_in`, `${id}_out`, getEffectiveMaxRps(node.data) * boost);
     }
     for (const [u, targets] of outgoing) {
       if (!reachable.has(u)) continue;

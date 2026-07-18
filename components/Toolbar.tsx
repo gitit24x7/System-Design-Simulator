@@ -6,7 +6,9 @@ import dagre from "dagre";
 import { toPng } from "html-to-image";
 import {
   BookOpen,
+  Calculator,
   Check,
+  Compass,
   Download,
   LayoutGrid,
   ListChecks,
@@ -87,6 +89,7 @@ export default function Toolbar() {
   const setMobileGuidedPanelOpen = useSysForgeStore((s) => s.setMobileGuidedPanelOpen);
   const setCritiquePanelOpen = useSysForgeStore((s) => s.setCritiquePanelOpen);
   const setGlossaryPanelOpen = useSysForgeStore((s) => s.setGlossaryPanelOpen);
+  const setEstimationPanelOpen = useSysForgeStore((s) => s.setEstimationPanelOpen);
 
   const nodeInternals = useStore((s) => s.nodeInternals);
   const { fitView } = useReactFlow();
@@ -200,6 +203,24 @@ export default function Toolbar() {
         <BookOpen size={14} />
         <span className="hidden sm:inline">Glossary</span>
       </button>
+      <button
+        onClick={() => setEstimationPanelOpen(true)}
+        title="Practice back-of-envelope estimation"
+        className={btnClass}
+      >
+        <Calculator size={14} />
+        <span className="hidden sm:inline">Estimate</span>
+      </button>
+      <a
+        href="/approach"
+        target="_blank"
+        rel="noreferrer"
+        title="How to approach any system design problem"
+        className={btnClass}
+      >
+        <Compass size={14} />
+        <span className="hidden sm:inline">Approach</span>
+      </a>
       <ProjectsMenu />
 
       <div className="ml-2 flex shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 p-0.5">

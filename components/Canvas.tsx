@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
+  Connection,
   ConnectionLineType,
   ConnectionMode,
   Controls,
@@ -33,6 +34,8 @@ import AnnotationLayer from "./AnnotationLayer";
 import AnnotationToolbar from "./AnnotationToolbar";
 import CritiquePanel from "./CritiquePanel";
 import GlossaryPanel from "./GlossaryPanel";
+import EstimationDrills from "./EstimationDrills";
+import TargetScaleBar from "./TargetScaleBar";
 
 const nodeTypes = { systemNode: SystemNode, noteNode: NoteNode };
 const edgeTypes = { floating: FloatingEdge };
@@ -70,6 +73,7 @@ function CanvasInner() {
   const rfInstance = useRef<ReactFlowInstance | null>(null);
   const [guideX, setGuideX] = useState<number | null>(null);
   const [guideY, setGuideY] = useState<number | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
   const { x: viewX, y: viewY, zoom } = useViewport();
 
   const demandCapRps = appMode === "sandbox" && simulatedLoad !== null ? simulatedLoad : undefined;
@@ -189,29 +193,56 @@ function CanvasInner() {
     setGuideY(null);
   }, []);
 
+  // Reject connections a professional diagramming tool wouldn't allow: a
+  // node wiring into itself (degenerate, zero-length floating edge), and an
+  // exact duplicate of an existing connection (same source and target,
+  // regardless of which handle was grabbed).
+  const isValidConnection = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return false;
+      if (connection.source === connection.target) return false;
+      return !edges.some(
+        (e) => e.source === connection.source && e.target === connection.target
+      );
+    },
+    [edges]
+  );
+
+  const onConnectStart = useCallback(() => setIsConnecting(true), []);
+  const onConnectEnd = useCallback(() => setIsConnecting(false), []);
+
   return (
     <div className="flex h-full w-full">
       <OnboardingModal />
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Toolbar />
+        <TargetScaleBar />
         {appMode === "sandbox" && <LoadSimulator />}
         <MetricsHUD metrics={metrics} />
-        <div ref={wrapperRef} id="sysforge-canvas-wrapper" className="relative flex-1">
+        <div
+          ref={wrapperRef}
+          id="sysforge-canvas-wrapper"
+          className={`relative flex-1 ${isConnecting ? "cursor-crosshair" : ""}`}
+        >
           <ReactFlow
             nodes={combinedNodes}
             edges={edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             connectionMode={ConnectionMode.Loose}
+            connectionRadius={45}
             connectionLineType={ConnectionLineType.Step}
-            connectionLineStyle={{ stroke: "#64748b", strokeWidth: 2 }}
+            connectionLineStyle={{ stroke: "#38bdf8", strokeWidth: 2.5 }}
+            isValidConnection={isValidConnection}
             defaultEdgeOptions={{ type: "floating" }}
             snapToGrid
             snapGrid={SNAP_GRID}
             onNodesChange={onCombinedNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
             onNodeDrag={onNodeDrag}
             onNodeDragStop={onNodeDragStop}
             onInit={(instance) => (rfInstance.current = instance)}
@@ -246,6 +277,7 @@ function CanvasInner() {
           <NodeInspector />
           <CritiquePanel nodes={nodes} edges={edges} metrics={metrics} />
           <GlossaryPanel />
+          <EstimationDrills />
         </div>
       </div>
       {appMode === "guided" && level && (

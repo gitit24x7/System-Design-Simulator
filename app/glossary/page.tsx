@@ -3,6 +3,10 @@ import "../landing.css";
 import LandingNav from "@/components/LandingNav";
 import LandingFooter from "@/components/LandingFooter";
 import { CONCEPTS, GLOSSARY_CATEGORY_ORDER } from "@/lib/concepts";
+import { COMPARISON_TABLES } from "@/lib/comparisons";
+import { formatLatency, LATENCY_NUMBERS } from "@/lib/latencyNumbers";
+
+const MAX_LOG_NS = Math.log10(LATENCY_NUMBERS[LATENCY_NUMBERS.length - 1].nanoseconds);
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
 
@@ -73,6 +77,67 @@ export default function GlossaryPage() {
             </section>
           );
         })}
+
+        <section className="flex flex-col gap-6">
+          <h2 className="border-b-2 border-[#0a0a0a] pb-2 text-lg font-bold uppercase text-[#0a0a0a]">
+            Latency Numbers Every Programmer Should Know
+          </h2>
+          <p className="max-w-[600px] text-[13.5px] leading-[1.75] text-[#3a3a3a]">
+            Popularized by Jeff Dean at Google, and one of the most-cited reference tables in systems
+            engineering -- the concrete numbers behind &quot;why does adding a network hop cost latency.&quot;
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {LATENCY_NUMBERS.map((l) => {
+              const pct = (Math.log10(l.nanoseconds) / MAX_LOG_NS) * 100;
+              return (
+                <div key={l.label} className="relative flex items-center justify-between overflow-hidden border border-[#0a0a0a]/15 px-3 py-1.5">
+                  <div className="absolute inset-y-0 left-0 bg-[#d7f0ff]" style={{ width: `${Math.max(pct, 2)}%` }} />
+                  <span className="relative z-10 text-[12.5px] text-[#0a0a0a]">{l.label}</span>
+                  <span className="relative z-10 text-[12.5px] font-bold text-[#0a0a0a]">
+                    {formatLatency(l.nanoseconds)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {COMPARISON_TABLES.map((t) => (
+          <section key={t.id} className="flex flex-col gap-4">
+            <h2 className="border-b-2 border-[#0a0a0a] pb-2 text-lg font-bold uppercase text-[#0a0a0a]">
+              {t.title}
+            </h2>
+            <p className="max-w-[600px] text-[13.5px] leading-[1.75] text-[#3a3a3a]">{t.blurb}</p>
+            <div className="overflow-x-auto border-2 border-[#0a0a0a]">
+              <table className="w-full min-w-[560px] border-collapse text-[12.5px]">
+                <thead>
+                  <tr className="bg-[#0a0a0a]">
+                    <th className="px-3 py-2 text-left text-white"></th>
+                    {t.columns.map((c) => (
+                      <th key={c} className="px-3 py-2 text-left font-bold text-white">
+                        {c}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {t.rows.map((r, i) => (
+                    <tr key={r.feature} className={i % 2 === 1 ? "bg-[#f2f7ff]" : ""}>
+                      <td className="border-t border-[#0a0a0a]/15 px-3 py-2 font-bold text-[#0a0a0a]">
+                        {r.feature}
+                      </td>
+                      {r.values.map((v, j) => (
+                        <td key={j} className="border-t border-[#0a0a0a]/15 px-3 py-2 text-[#3a3a3a]">
+                          {v}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))}
       </main>
       <LandingFooter />
     </div>

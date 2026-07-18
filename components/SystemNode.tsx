@@ -45,11 +45,34 @@ const ICONS: Record<SystemComponent["type"], LucideIcon> = {
   custom: Blocks,
 };
 
+// Every component type gets its own solid color, like the icon sets in real
+// architecture-diagramming tools -- a colored badge reads at a glance from
+// across the canvas, where a mono-color icon and a wall of similar gray
+// rectangles don't.
+const ICON_BG: Record<SystemComponent["type"], string> = {
+  client: "bg-slate-500",
+  cdn: "bg-sky-500",
+  "load-balancer": "bg-orange-500",
+  "api-gateway": "bg-fuchsia-600",
+  api: "bg-blue-600",
+  cache: "bg-red-600",
+  database: "bg-amber-500",
+  "object-storage": "bg-yellow-600",
+  queue: "bg-teal-500",
+  "message-broker": "bg-purple-600",
+  worker: "bg-green-600",
+  custom: "bg-violet-500",
+};
+
 // Touch devices can't trigger :hover, so handles get a low baseline opacity
-// and a larger hit target below the sm breakpoint; desktop keeps the
-// hover-to-reveal behavior so the canvas stays uncluttered.
+// and a larger hit target below the sm breakpoint. Desktop handles stay
+// dimly visible (rather than fully hidden) so users can see where to grab
+// from before hovering, then brighten and grow on hover/drag. The `before:`
+// pseudo-element pads the actual pointer hit area well beyond the visible
+// dot -- matching the generous hit-slop professional diagramming tools use
+// so a slightly-off grab still starts a connection.
 const HANDLE_CLASS =
-  "!h-3.5 !w-3.5 !border !border-zinc-400 !bg-zinc-700 opacity-40 transition-opacity sm:!h-2.5 sm:!w-2.5 sm:opacity-0 sm:group-hover:opacity-100";
+  "!h-3.5 !w-3.5 !border !border-zinc-400 !bg-zinc-700 opacity-50 transition-all before:absolute before:-inset-2.5 before:content-[''] hover:!scale-125 hover:!border-sky-400 hover:!bg-sky-500 sm:!h-2.5 sm:!w-2.5 sm:opacity-30 sm:group-hover:opacity-100 sm:group-hover:!h-3 sm:group-hover:!w-3";
 
 export default function SystemNode({ id, data }: NodeProps<SystemComponent>) {
   const Icon = ICONS[data.type];
@@ -67,23 +90,25 @@ export default function SystemNode({ id, data }: NodeProps<SystemComponent>) {
     getEffectiveBaseCost(data) * getProviderCostMultiplier(data.type, data.variant, provider)
   );
 
+  // Only one ring shown at a time, in priority order -- dead trumps
+  // everything, then the user's own selection, then live simulation state.
+  const ringClass = isDead
+    ? "ring-2 ring-red-500"
+    : isSelected
+      ? "ring-2 ring-sky-400"
+      : isSaturated
+        ? "ring-2 ring-amber-400 animate-pulse"
+        : isDegraded
+          ? "ring-2 ring-purple-400"
+          : "ring-1 ring-zinc-700 group-hover:ring-zinc-500";
+
   return (
     <div
       onClick={(e) => {
         e.stopPropagation();
         selectNode(id);
       }}
-      className={`group relative flex min-w-[140px] cursor-pointer flex-col gap-1 rounded-lg border-2 px-3 py-2 shadow-md transition-colors ${
-        isDead
-          ? "border-red-600 bg-red-950/60 grayscale"
-          : isSelected
-            ? "border-sky-500 bg-zinc-900"
-            : isSaturated
-              ? "border-amber-500 bg-zinc-900 animate-pulse"
-              : isDegraded
-                ? "border-purple-500 bg-zinc-900"
-                : "border-zinc-700 bg-zinc-900"
-      }`}
+      className="group relative flex w-[92px] cursor-pointer flex-col items-center gap-1"
     >
       {/* Floating connection points on every side, connectable in either
           direction (connectionMode="loose"). The rendered edge ignores which
@@ -94,31 +119,48 @@ export default function SystemNode({ id, data }: NodeProps<SystemComponent>) {
       <Handle type="source" position={Position.Bottom} id="bottom" className={HANDLE_CLASS} />
       <Handle type="source" position={Position.Left} id="left" className={HANDLE_CLASS} />
 
-      <div className="flex items-center gap-2">
-        <Icon size={16} className={isDead ? "text-red-400" : "text-emerald-400"} />
-        <span className="text-sm font-medium text-zinc-100">{displayLabel}</span>
-        {isDead && <Flame size={14} className="ml-auto animate-pulse text-orange-500" />}
-        {!isDead && (isSaturated || isDegraded) && (
-          <span className="ml-auto flex items-center gap-1">
-            {isSaturated && (
-              <span title="This is the current bottleneck">
-                <AlertTriangle size={14} className="text-amber-400" />
-              </span>
-            )}
-            {isDegraded && (
-              <span title={`Simulated degradation: ${data.degradation}%`}>
-                <TrendingDown size={14} className="text-purple-400" />
-              </span>
-            )}
+      <div
+        className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-md transition-all ${ICON_BG[data.type]} ${ringClass} ${
+          isDead ? "grayscale" : ""
+        }`}
+      >
+        <Icon size={22} className="text-white" strokeWidth={2} />
+        {isDead && (
+          <span
+            title="Dead"
+            className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950 ring-1 ring-red-500"
+          >
+            <Flame size={12} className="animate-pulse text-orange-500" />
+          </span>
+        )}
+        {!isDead && isSaturated && (
+          <span
+            title="This is the current bottleneck"
+            className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950 ring-1 ring-amber-500"
+          >
+            <AlertTriangle size={12} className="text-amber-400" />
+          </span>
+        )}
+        {!isDead && !isSaturated && isDegraded && (
+          <span
+            title={`Simulated degradation: ${data.degradation}%`}
+            className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950 ring-1 ring-purple-500"
+          >
+            <TrendingDown size={12} className="text-purple-400" />
           </span>
         )}
       </div>
 
-      <div className="flex gap-2 text-[10px] text-zinc-400">
+      <span className="max-w-full truncate text-center text-[11px] font-medium leading-tight text-zinc-100">
+        {displayLabel}
+      </span>
+
+      <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-center text-[9px] leading-tight text-zinc-500">
         <span>{data.maxRps >= UNLIMITED_RPS ? "∞" : effectiveRps} rps</span>
         <span>{effectiveLatency}ms</span>
         <span>${effectiveCost}/mo</span>
         {data.type === "database" && <span>CAP {data.consistency}%</span>}
+        {data.type === "cache" && <span>{Math.round(data.cacheHitRatePct ?? 85)}% hit</span>}
       </div>
     </div>
   );

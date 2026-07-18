@@ -24,3 +24,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Connection-drag feedback: React Flow toggles these classes on a handle
+   while the user is dragging a new edge from it, and on any handle that is
+   currently a valid drop target. Surfacing them makes it obvious where a
+   connection can land, instead of the drag just silently succeeding/failing. */
+.react-flow__handle.connecting {
+  background: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  opacity: 1 !important;
+}
+
+.react-flow__handle.valid {
+  background: #34d399 !important;
+  border-color: #34d399 !important;
+  opacity: 1 !important;
+  transform: scale(1.6);
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.25);
+}
+
+.react-flow__node:has(.react-flow__handle.valid) {
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.55));
+}

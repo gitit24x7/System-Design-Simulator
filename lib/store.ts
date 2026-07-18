@@ -108,6 +108,11 @@ interface SysForgeState {
   simulateTraffic: boolean;
   appMode: AppMode;
   simulatedLoad: number | null;
+  /** A user-stated design goal (rps), independent of simulatedLoad -- this
+   * doesn't cap traffic, it's just a target Critique checks the design's
+   * actual achievable throughput against, so "estimate scale" has something
+   * real to be checked against instead of staying a disconnected drill. */
+  targetScaleRps: number | null;
   currentLevelId: string;
   savedDesigns: Record<string, SavedDesign>;
   bottleneckNodeId: string | null;
@@ -119,6 +124,7 @@ interface SysForgeState {
   mobileGuidedPanelOpen: boolean;
   critiquePanelOpen: boolean;
   glossaryPanelOpen: boolean;
+  estimationPanelOpen: boolean;
   completedLevelIds: string[];
   past: HistorySnapshot[];
   future: HistorySnapshot[];
@@ -142,6 +148,7 @@ interface SysForgeState {
   setMobileGuidedPanelOpen: (open: boolean) => void;
   setCritiquePanelOpen: (open: boolean) => void;
   setGlossaryPanelOpen: (open: boolean) => void;
+  setEstimationPanelOpen: (open: boolean) => void;
   markLevelComplete: (levelId: string) => void;
   killRandomNode: () => void;
   reviveAllNodes: () => void;
@@ -151,6 +158,7 @@ interface SysForgeState {
   updateNodeSecondaryVariant: (nodeId: string, optionId: string) => void;
   updateNodeConsistency: (nodeId: string, consistency: number) => void;
   updateNodeDegradation: (nodeId: string, degradation: number) => void;
+  updateNodeCacheHitRate: (nodeId: string, cacheHitRatePct: number) => void;
   updateNodeCustomStats: (
     nodeId: string,
     patch: Partial<Pick<SystemComponent, "maxRps" | "latencyMs" | "costPerMonth">>
@@ -166,6 +174,7 @@ interface SysForgeState {
   toggleSimulateTraffic: () => void;
   setAppMode: (mode: AppMode) => void;
   setSimulatedLoad: (load: number | null) => void;
+  setTargetScaleRps: (rps: number | null) => void;
   setCurrentLevelId: (levelId: string) => void;
   setLiveMetrics: (bottleneckNodeId: string | null, saturatedNodeIds: string[]) => void;
   saveDesignAs: (name: string) => void;
@@ -215,6 +224,7 @@ export const useSysForgeStore = create<SysForgeState>()(
         simulateTraffic: false,
         appMode: "guided",
         simulatedLoad: null,
+        targetScaleRps: null,
         currentLevelId: DEFAULT_LEVEL_ID,
         savedDesigns: {},
         bottleneckNodeId: null,
@@ -226,6 +236,7 @@ export const useSysForgeStore = create<SysForgeState>()(
         mobileGuidedPanelOpen: false,
         critiquePanelOpen: false,
         glossaryPanelOpen: false,
+        estimationPanelOpen: false,
         completedLevelIds: [],
         past: [],
         future: [],
@@ -354,6 +365,8 @@ export const useSysForgeStore = create<SysForgeState>()(
 
         setGlossaryPanelOpen: (open) => set({ glossaryPanelOpen: open }),
 
+        setEstimationPanelOpen: (open) => set({ estimationPanelOpen: open }),
+
         markLevelComplete: (levelId) => {
           if (get().completedLevelIds.includes(levelId)) return;
           set({ completedLevelIds: [...get().completedLevelIds, levelId] });
@@ -462,6 +475,15 @@ export const useSysForgeStore = create<SysForgeState>()(
           });
         },
 
+        updateNodeCacheHitRate: (nodeId, cacheHitRatePct) => {
+          snapshot();
+          set({
+            nodes: get().nodes.map((n) =>
+              n.id === nodeId ? { ...n, data: { ...n.data, cacheHitRatePct } } : n
+            ),
+          });
+        },
+
         updateNodeCustomStats: (nodeId, patch) => {
           snapshot();
           set({
@@ -560,6 +582,8 @@ export const useSysForgeStore = create<SysForgeState>()(
         setAppMode: (mode) => set({ appMode: mode, simulatedLoad: mode === "sandbox" ? get().simulatedLoad : null }),
 
         setSimulatedLoad: (load) => set({ simulatedLoad: load }),
+
+        setTargetScaleRps: (rps) => set({ targetScaleRps: rps }),
 
         setCurrentLevelId: (levelId) => set({ currentLevelId: levelId }),
 

@@ -50,6 +50,7 @@ export default function NodeInspector() {
   const updateNodeSecondaryVariant = useSysForgeStore((s) => s.updateNodeSecondaryVariant);
   const updateNodeConsistency = useSysForgeStore((s) => s.updateNodeConsistency);
   const updateNodeDegradation = useSysForgeStore((s) => s.updateNodeDegradation);
+  const updateNodeCacheHitRate = useSysForgeStore((s) => s.updateNodeCacheHitRate);
   const updateNodeCustomStats = useSysForgeStore((s) => s.updateNodeCustomStats);
   const removeNode = useSysForgeStore((s) => s.removeNode);
   const duplicateNode = useSysForgeStore((s) => s.duplicateNode);
@@ -78,8 +79,9 @@ export default function NodeInspector() {
   const activeVariant = getVariant(node.data.type, node.data.variant);
   const showVariantSwitcher = variants.length > 1;
   const showConsistencySlider = node.data.type === "database";
+  const showCacheHitRateSlider = node.data.type === "cache";
   const providerLabel = getDisplayLabel(node.data.type, node.data.variant, provider);
-  const capTradeoffs = getCapTradeoffs(node.data.consistency);
+  const capTradeoffs = getCapTradeoffs(node.data.consistency, node.data.variant);
   const secondaryAxis = getSecondaryVariants(node.data.type);
   const activeSecondary = secondaryAxis ? getSecondaryVariant(node.data.type, node.data.secondaryVariant) : null;
   const showDegradationSlider = node.data.type !== "client";
@@ -250,6 +252,29 @@ export default function NodeInspector() {
           <div className="mt-2">
             <TradeoffList pros={capTradeoffs.pros} cons={capTradeoffs.cons} />
           </div>
+        </div>
+      )}
+
+      {showCacheHitRateSlider && (
+        <div className="mb-3">
+          <div className="mb-1 flex justify-between text-xs uppercase tracking-wide text-zinc-500">
+            <span>0%</span>
+            <span>Cache Hit Rate</span>
+            <span>99%</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={99}
+            value={node.data.cacheHitRatePct ?? 85}
+            onChange={(e) => updateNodeCacheHitRate(node.id, Number(e.target.value))}
+            className="w-full accent-sky-500"
+          />
+          <p className="mt-1 text-[11px] text-zinc-500">
+            The share of requests this cache actually absorbs. A healthy cache grants extra effective
+            capacity to whatever sits downstream of it -- dial this down (or degrade the cache) to see
+            that protection disappear.
+          </p>
         </div>
       )}
 

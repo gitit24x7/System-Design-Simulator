@@ -10,6 +10,9 @@ export default function LandingFooter() {
         <Link href="/glossary" className="hover:text-[#34A853]">
           Glossary
         </Link>
+        <Link href="/approach" className="hover:text-[#4285F4]">
+          Approach
+        </Link>
         <Link href="/privacy" className="hover:text-[#EA4335]">
           Privacy
         </Link>

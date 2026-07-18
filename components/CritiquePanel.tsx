@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Info, ShieldAlert, Sparkles, X } from "lucide-react";
-import { analyzeCritique, CritiqueSeverity } from "@/lib/critique";
+import { analyzeCritique, CritiqueFinding, CritiqueSeverity } from "@/lib/critique";
 import { GraphEdge, GraphNode, SystemMetrics } from "@/lib/engine";
 import { useSysForgeStore } from "@/lib/store";
 
@@ -22,10 +22,20 @@ export default function CritiquePanel({
 }) {
   const open = useSysForgeStore((s) => s.critiquePanelOpen);
   const setOpen = useSysForgeStore((s) => s.setCritiquePanelOpen);
+  const updateNodeDegradation = useSysForgeStore((s) => s.updateNodeDegradation);
+  const targetScaleRps = useSysForgeStore((s) => s.targetScaleRps);
 
   if (!open) return null;
 
-  const findings = analyzeCritique(nodes, edges, metrics);
+  const runAction = (action: NonNullable<CritiqueFinding["action"]>) => {
+    if (action.kind === "simulate-cold-cache" || action.kind === "simulate-worker-backlog") {
+      updateNodeDegradation(action.nodeId, 100);
+    } else if (action.kind === "restore-cache" || action.kind === "restore-worker") {
+      updateNodeDegradation(action.nodeId, 0);
+    }
+  };
+
+  const findings = analyzeCritique(nodes, edges, metrics, targetScaleRps);
 
   return (
     <div
@@ -70,6 +80,15 @@ export default function CritiquePanel({
                       <div>
                         <p className="text-xs font-semibold">{f.title}</p>
                         <p className="mt-0.5 text-[11px] leading-snug text-zinc-300">{f.message}</p>
+                        {f.action && (
+                          <button
+                            type="button"
+                            onClick={() => runAction(f.action!)}
+                            className="mt-2 rounded-md border border-current px-2 py-1 text-[11px] font-medium transition-colors hover:bg-white/10"
+                          >
+                            {f.action.label}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </li>

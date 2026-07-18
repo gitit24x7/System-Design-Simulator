@@ -19,6 +19,14 @@ export interface CritiqueFinding {
   severity: CritiqueSeverity;
   title: string;
   message: string;
+  /** An optional one-click way to *experience* the finding instead of just
+   * reading it -- e.g. actually cool a cache down and watch the live metrics
+   * react, rather than a static warning that it's load-bearing. */
+  action?: {
+    label: string;
+    nodeId: string;
+    kind: "simulate-cold-cache" | "restore-cache" | "simulate-worker-backlog" | "restore-worker";
+  };
 }
 
 const SEVERITY_RANK: Record<CritiqueSeverity, number> = { critical: 0, warning: 1, tip: 2 };
@@ -31,7 +39,12 @@ function label(type: ComponentType): string {
   return TYPE_LABELS[type];
 }
 
-export function analyzeCritique(nodes: GraphNode[], edges: GraphEdge[], metrics: SystemMetrics): CritiqueFinding[] {
+export function analyzeCritique(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  metrics: SystemMetrics,
+  targetScaleRps?: number | null
+): CritiqueFinding[] {
   const findings: CritiqueFinding[] = [];
   const alive = nodes.filter((n) => n.data.health !== "dead");
 
@@ -57,6 +70,42 @@ export function analyzeCritique(nodes: GraphNode[], edges: GraphEdge[], metrics:
         .map((n) => n.data.customLabel || label(n.data.type))
         .join(", ")}). A disconnected node doesn't count toward your metrics -- connect it or remove it.`,
     });
+  }
+
+  // A stated design target (from the estimate-scale step) checked against
+  // what this design can actually sustain -- the "estimate scale" step made
+  // load-bearing, instead of a disconnected drill you do once and forget.
+  if (targetScaleRps && targetScaleRps > 0) {
+    const achievable = metrics.rps;
+    const ratio = achievable / targetScaleRps;
+    if (ratio < 1) {
+      const bottleneck = metrics.bottleneckNodeId ? nodes.find((n) => n.id === metrics.bottleneckNodeId) : null;
+      const shortBy = Math.round((1 - ratio) * 100);
+      findings.push({
+        id: "target-scale-under",
+        severity: "critical",
+        title: "This design can't sustain your stated target",
+        message: `You're designing for ${targetScaleRps.toLocaleString()} rps, but it currently tops out at ${achievable.toLocaleString()} rps -- ${shortBy}% short.${
+          bottleneck
+            ? ` ${bottleneck.data.customLabel || label(bottleneck.data.type)} is the cap; scale it (a bigger variant, a second instance, or offloading some of its work) to close the gap.`
+            : ""
+        }`,
+      });
+    } else if (ratio > 5 && metrics.costPerMonth > 0) {
+      findings.push({
+        id: "target-scale-over",
+        severity: "tip",
+        title: "Sized well past your stated target",
+        message: `This design sustains ${achievable.toLocaleString()} rps -- ${Math.round(ratio)}x your stated target of ${targetScaleRps.toLocaleString()} rps, at $${metrics.costPerMonth.toLocaleString()}/mo. That headroom isn't free -- worth checking whether it's deliberate margin or just unused capacity you're paying for.`,
+      });
+    } else {
+      findings.push({
+        id: "target-scale-fit",
+        severity: "tip",
+        title: "Sized appropriately for your stated target",
+        message: `This design sustains ${achievable.toLocaleString()} rps against a stated target of ${targetScaleRps.toLocaleString()} rps -- real headroom without obvious over-provisioning.`,
+      });
+    }
   }
 
   // Surface every anti-pattern / questionable connection the rules engine flags.
@@ -135,6 +184,36 @@ export function analyzeCritique(nodes: GraphNode[], edges: GraphEdge[], metrics:
     });
   }
 
+  // A cache is directly shielding a database -- the exact relationship the
+  // engine's cache-boost math models. Offer to actually cool it down (or, if
+  // already cooled, to restore it) instead of just describing the risk.
+  const cacheToDbEdges = edges.filter(
+    (e) => !e.data?.severed && nodeType(e.source) === "cache" && nodeType(e.target) === "database"
+  );
+  for (const edge of cacheToDbEdges) {
+    const cache = nodes.find((n) => n.id === edge.source);
+    if (!cache || cache.data.health === "dead") continue;
+    const cacheLabel = cache.data.customLabel || "This cache";
+    if (cache.data.degradation >= 80) {
+      findings.push({
+        id: `cache-cold-active-${cache.id}`,
+        severity: "warning",
+        title: `${cacheLabel} is simulated cold right now`,
+        message:
+          "With the cache thrashing, almost everything it used to absorb is landing on the database behind it -- watch the throughput and latency numbers above react. This is the thundering-herd / cold-start failure mode: the real fix is request coalescing (single-flight) or TTL jitter on refill, not just a bigger cache.",
+        action: { label: "Restore the cache", nodeId: cache.id, kind: "restore-cache" },
+      });
+    } else if (metrics.rps > 0) {
+      findings.push({
+        id: `cache-consequence-${cache.id}`,
+        severity: "tip",
+        title: `See what ${cacheLabel.toLowerCase()} is actually protecting`,
+        message: `${cacheLabel} is currently absorbing most of the load in front of your database. Simulate it going cold (a mass eviction, a bad deploy) and watch what happens to the metrics above -- then bring it back.`,
+        action: { label: "Simulate a cold cache", nodeId: cache.id, kind: "simulate-cold-cache" },
+      });
+    }
+  }
+
   // Worker exists but nothing feeds it except a direct API call (already
   // caught above as a "warning" connection, but add the constructive nudge).
   const hasWorker = nodesOfType(nodes, "worker").length > 0;
@@ -146,6 +225,44 @@ export function analyzeCritique(nodes: GraphNode[], edges: GraphEdge[], metrics:
       title: "A Worker with nothing buffering its input",
       message: "Workers are meant to process jobs handed off by a Queue or Message Broker, which absorb traffic spikes. Without one, a burst of requests can overwhelm the worker directly.",
     });
+  }
+
+  // A queue/broker feeds a worker -- the exact "decoupling" relationship
+  // that's supposed to protect the rest of the system from a slow consumer.
+  // Offer to actually stall the worker and let the throughput math (which
+  // already treats the worker as a hard capacity ceiling) show what a queue
+  // can and can't save you from: it smooths bursts, it doesn't create
+  // capacity that isn't there, and if nothing ever drains it, the queue
+  // that decoupled you becomes the reason nothing is moving.
+  const bufferToWorkerEdges = edges.filter(
+    (e) =>
+      !e.data?.severed &&
+      (nodeType(e.source) === "queue" || nodeType(e.source) === "message-broker") &&
+      nodeType(e.target) === "worker"
+  );
+  for (const edge of bufferToWorkerEdges) {
+    const buffer = nodes.find((n) => n.id === edge.source);
+    const worker = nodes.find((n) => n.id === edge.target);
+    if (!buffer || buffer.data.health === "dead" || !worker || worker.data.health === "dead") continue;
+    const bufferLabel = buffer.data.customLabel || label(buffer.data.type);
+    const workerLabel = worker.data.customLabel || "the worker";
+    if (worker.data.degradation >= 80) {
+      findings.push({
+        id: `worker-backlog-active-${worker.id}`,
+        severity: "warning",
+        title: `${workerLabel} can't keep up right now`,
+        message: `${bufferLabel} is still healthy and still accepting work -- producers aren't blocked, nothing looks broken upstream. But almost nothing is actually getting processed at the rate you need. This is the trap: a queue smooths a burst, it doesn't create capacity that isn't there. If the thing draining it never catches up, the queue you added to protect the system is now the reason nothing is moving.`,
+        action: { label: "Restore the worker", nodeId: worker.id, kind: "restore-worker" },
+      });
+    } else if (metrics.rps > 0) {
+      findings.push({
+        id: `worker-backlog-consequence-${worker.id}`,
+        severity: "tip",
+        title: `See what happens when ${workerLabel} falls behind`,
+        message: `${bufferLabel} is currently smoothing load in front of ${workerLabel}. Simulate the worker stalling (a bad deploy, a slow downstream call) and watch the throughput ceiling above -- then bring it back.`,
+        action: { label: "Simulate the worker falling behind", nodeId: worker.id, kind: "simulate-worker-backlog" },
+      });
+    }
   }
 
   // CAP consistency dialed high -- point out the trade-off is deliberate,
