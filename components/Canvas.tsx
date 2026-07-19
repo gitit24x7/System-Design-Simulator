@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Connection,
-  ConnectionLineType,
   ConnectionMode,
   Controls,
   MiniMap,
@@ -21,6 +20,7 @@ import { DEFAULT_LEVEL_ID, getLevel } from "@/lib/campaign";
 import SystemNode from "./SystemNode";
 import NoteNode from "./NoteNode";
 import FloatingEdge from "./FloatingEdge";
+import FloatingConnectionLine from "./FloatingConnectionLine";
 import Sidebar from "./Sidebar";
 import MetricsHUD from "./MetricsHUD";
 import ChaosMonkey from "./ChaosMonkey";
@@ -232,7 +232,7 @@ function CanvasInner() {
             edgeTypes={edgeTypes}
             connectionMode={ConnectionMode.Loose}
             connectionRadius={45}
-            connectionLineType={ConnectionLineType.Step}
+            connectionLineComponent={FloatingConnectionLine}
             connectionLineStyle={{ stroke: "#38bdf8", strokeWidth: 2.5 }}
             isValidConnection={isValidConnection}
             defaultEdgeOptions={{ type: "floating" }}

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { BaseEdge, EdgeLabelRenderer, EdgeProps, getSmoothStepPath, useStore } from "reactflow";
 import { Link2Off, Unplug, X } from "lucide-react";
-import { getFloatingEdgeParams } from "@/lib/floatingEdge";
+import { getFloatingEdgeParams, toIconRect } from "@/lib/floatingEdge";
 import { useSysForgeStore } from "@/lib/store";
 
 export default function FloatingEdge({ id, source, target, markerEnd, style, data }: EdgeProps) {
@@ -24,13 +24,25 @@ export default function FloatingEdge({ id, source, target, markerEnd, style, dat
     return null;
   }
 
-  const { sx, sy, tx, ty, sourcePos, targetPos } = getFloatingEdgeParams(
-    { positionAbsolute: sourceNode.positionAbsolute, width: sourceNode.width, height: sourceNode.height },
-    { positionAbsolute: targetNode.positionAbsolute, width: targetNode.width, height: targetNode.height }
-  );
+  // Anchor to the icon badge specifically (not the whole card, which also
+  // includes the label and stats text below it) so the arrow always visually
+  // touches the icon, regardless of label length.
+  const sourceRect =
+    sourceNode.type === "systemNode"
+      ? toIconRect({ positionAbsolute: sourceNode.positionAbsolute, width: sourceNode.width, height: sourceNode.height })
+      : { positionAbsolute: sourceNode.positionAbsolute, width: sourceNode.width, height: sourceNode.height };
+  const targetRect =
+    targetNode.type === "systemNode"
+      ? toIconRect({ positionAbsolute: targetNode.positionAbsolute, width: targetNode.width, height: targetNode.height })
+      : { positionAbsolute: targetNode.positionAbsolute, width: targetNode.width, height: targetNode.height };
 
-  // borderRadius: 0 gives sharp 90-degree corners (a "step" edge) instead of
-  // the default rounded smoothstep joints.
+  const { sx, sy, tx, ty, sourcePos, targetPos } = getFloatingEdgeParams(sourceRect, targetRect);
+
+  // Orthogonal routing (a "step" edge), but with rounded corners rather than
+  // sharp 90-degree joints -- this is the same shape professional
+  // diagramming tools (n8n, draw.io, most cloud-architecture diagrams) use:
+  // clean right-angle structure so lines never cut diagonally through other
+  // nodes, but softened at each turn so it doesn't read as jagged.
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX: sx,
     sourceY: sy,
@@ -38,7 +50,7 @@ export default function FloatingEdge({ id, source, target, markerEnd, style, dat
     targetX: tx,
     targetY: ty,
     targetPosition: targetPos,
-    borderRadius: 0,
+    borderRadius: 12,
   });
 
   const isSevered = Boolean(data?.severed);

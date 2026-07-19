@@ -1,40 +1,11 @@
 "use client";
 
-import {
-  Archive,
-  Blocks,
-  Database,
-  Globe,
-  ListOrdered,
-  Radio,
-  Server,
-  ShieldCheck,
-  Shuffle,
-  StickyNote,
-  User,
-  X,
-  Zap,
-  Cog,
-  LucideIcon,
-} from "lucide-react";
+import { StickyNote, X } from "lucide-react";
 import { useReactFlow } from "reactflow";
 import { ComponentType, TYPE_LABELS } from "@/lib/engine";
+import { BEVEL_SHADOW, ICON_GRADIENT } from "@/lib/iconTheme";
 import { useSysForgeStore } from "@/lib/store";
-
-const ICONS: Record<ComponentType, LucideIcon> = {
-  client: User,
-  cdn: Globe,
-  "load-balancer": Shuffle,
-  "api-gateway": ShieldCheck,
-  api: Server,
-  cache: Zap,
-  database: Database,
-  "object-storage": Archive,
-  queue: ListOrdered,
-  "message-broker": Radio,
-  worker: Cog,
-  custom: Blocks,
-};
+import ComponentIcon from "./ComponentIcon";
 
 const PALETTE: ComponentType[] = [
   "client",
@@ -112,22 +83,24 @@ export default function Sidebar() {
           </button>
         </div>
         <p className="mb-0.5 text-[10px] leading-snug text-zinc-600">Click to place, or drag onto the canvas.</p>
-        {PALETTE.map((type) => {
-          const Icon = ICONS[type];
-          return (
-            <button
-              key={type}
-              type="button"
-              draggable
-              onDragStart={(e) => onDragStart(e, type)}
-              onClick={() => onClickAdd(type)}
-              className="flex cursor-grab items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left text-[13px] text-zinc-200 transition-colors hover:border-emerald-600 hover:bg-zinc-800 active:cursor-grabbing"
+        {PALETTE.map((type) => (
+          <button
+            key={type}
+            type="button"
+            draggable
+            onDragStart={(e) => onDragStart(e, type)}
+            onClick={() => onClickAdd(type)}
+            className="flex cursor-grab items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-left text-[13px] text-zinc-200 transition-colors hover:border-emerald-600 hover:bg-zinc-800 active:cursor-grabbing"
+          >
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${ICON_GRADIENT[type]}`}
+              style={{ boxShadow: BEVEL_SHADOW }}
             >
-              <Icon size={14} className="shrink-0 text-emerald-400" />
-              <span className="truncate">{TYPE_LABELS[type]}</span>
-            </button>
-          );
-        })}
+              <ComponentIcon type={type} size={14} />
+            </span>
+            <span className="truncate">{TYPE_LABELS[type]}</span>
+          </button>
+        ))}
 
         <div className="my-0.5 border-t border-zinc-800" />
         <button
@@ -138,7 +111,12 @@ export default function Sidebar() {
           title="Add a component with your own name, throughput, latency, and cost"
           className="flex cursor-grab items-center gap-1.5 rounded-md border border-dashed border-violet-700/60 bg-violet-950/20 px-2 py-1.5 text-left text-[13px] text-violet-200 transition-colors hover:border-violet-500 hover:bg-violet-950/40 active:cursor-grabbing"
         >
-          <Blocks size={14} className="shrink-0 text-violet-400" />
+          <span
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${ICON_GRADIENT.custom}`}
+            style={{ boxShadow: BEVEL_SHADOW }}
+          >
+            <ComponentIcon type="custom" size={14} />
+          </span>
           <span className="truncate">Custom Component</span>
         </button>
         <button

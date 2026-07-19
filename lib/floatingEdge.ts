@@ -58,3 +58,33 @@ export function getFloatingEdgeParams(source: FloatingNode, target: FloatingNode
     targetPos: getEdgePosition(target, targetIntersection),
   };
 }
+
+// SystemNode renders its connectable icon badge inset within a taller card
+// (icon on top, label + stats text below). Edges should visually terminate at
+// the icon itself, not wherever the line happens to cross the label/stats
+// text -- these constants mirror SystemNode.tsx's layout exactly so the
+// geometry always targets the icon's rectangle, regardless of label length.
+const ICON_RECT = { size: 48, topOffset: 8, nodeWidth: 92 };
+
+export function toIconRect(node: FloatingNode): FloatingNode {
+  const { size, topOffset, nodeWidth } = ICON_RECT;
+  const leftOffset = (nodeWidth - size) / 2;
+  return {
+    positionAbsolute: { x: node.positionAbsolute.x + leftOffset, y: node.positionAbsolute.y + topOffset },
+    width: size,
+    height: size,
+  };
+}
+
+export function oppositePosition(pos: Position): Position {
+  switch (pos) {
+    case Position.Top:
+      return Position.Bottom;
+    case Position.Bottom:
+      return Position.Top;
+    case Position.Left:
+      return Position.Right;
+    default:
+      return Position.Left;
+  }
+}
